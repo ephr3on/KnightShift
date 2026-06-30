@@ -54,6 +54,72 @@ const ROUNDS_OPTIONS: { label: string; value: OnlineMatchSettings['rounds'] }[] 
   { label: 'Best of 5', value: 5 },
 ];
 
+type MatchPreset = {
+  id: string;
+  title: string;
+  subtitle: string;
+  badge: string;
+  settings: OnlineMatchSettings;
+};
+
+const MATCH_PRESETS: MatchPreset[] = [
+  {
+    id: 'quick',
+    title: 'Quick Duel',
+    subtitle: 'Fast, light, perfect for one clean round.',
+    badge: '2 min',
+    settings: {
+      mode: 'no-turns',
+      difficulty: 'Medium',
+      boardSize: 'small',
+      rounds: 1,
+      timeLimitSeconds: 120,
+      moveLimitMode: 'none',
+    },
+  },
+  {
+    id: 'balanced',
+    title: 'Balanced',
+    subtitle: 'Recommended setup for most matches.',
+    badge: 'Best pick',
+    settings: DEFAULT_MATCH_SETTINGS,
+  },
+  {
+    id: 'pro',
+    title: 'Pro Match',
+    subtitle: 'Harder puzzle, Best of 3, fair pressure.',
+    badge: 'Best of 3',
+    settings: {
+      mode: 'no-turns',
+      difficulty: 'Hard',
+      boardSize: 'classic',
+      rounds: 3,
+      timeLimitSeconds: 180,
+      moveLimitMode: 'optimal+5',
+    },
+  },
+];
+
+function sameSettings(a: OnlineMatchSettings, b: OnlineMatchSettings): boolean {
+  return a.mode === b.mode
+    && a.difficulty === b.difficulty
+    && a.boardSize === b.boardSize
+    && a.rounds === b.rounds
+    && a.timeLimitSeconds === b.timeLimitSeconds
+    && a.moveLimitMode === b.moveLimitMode;
+}
+
+function formatTimeLimit(seconds: number): string {
+  if (!seconds) return 'No timer';
+  if (seconds < 60) return `${seconds}s`;
+  return `${Math.round(seconds / 60)} min`;
+}
+
+function formatMoveLimit(mode: OnlineMatchSettings['moveLimitMode']): string {
+  if (mode === 'none') return 'No move cap';
+  return mode.replace('optimal', 'Optimal ');
+}
+
 interface Props {
   roomCode: string;
   playerId: string;
@@ -72,6 +138,7 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
   const [roomClosed, setRoomClosed] = useState(false);
   const [settingsUpdating, setSettingsUpdating] = useState(false);
   const [rounds, setRounds] = useState<RoundResult[]>([]);
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
 
   const latestRoomRef = useRef<OnlineRoom | null>(null);
   /** Puzzle built locally — host from worker, guest via reproducePuzzle(). */
@@ -294,6 +361,13 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
   const isGenerating = room?.status === 'generating';
   const settingsEditable = isHost && room?.status === 'waiting' && !room?.settingsLocked && !settingsUpdating;
   const canStartMatch = isHost && !!opponentData && isPlayerOnline(opponentData) && !settingsUpdating && room?.status === 'waiting';
+  const activePreset = MATCH_PRESETS.find(preset => sameSettings(localSettings, preset.settings));
+  const boardLabel = BOARD_SIZE_CONFIG[localSettings.boardSize]?.label ?? localSettings.boardSize;
+  const roundLabel = ROUNDS_OPTIONS.find(opt => opt.value === localSettings.rounds)?.label ?? `${localSettings.rounds} round`;
+  const modeLabel = localSettings.mode === 'no-turns' ? 'No turns' : 'With turns';
+  const difficultyLabel = localSettings.difficulty;
+  const timeLabel = formatTimeLimit(localSettings.timeLimitSeconds);
+  const moveLimitLabel = formatMoveLimit(localSettings.moveLimitMode);
 
   // ── Special states ───────────────────────────────────────────────────────────
 
@@ -478,146 +552,183 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
 
       {/* Match settings panel */}
       {!isCountdown && (
-        <div className="panel online-settings-panel">
-          <div style={{ fontSize: 8, color: 'var(--text-dim)', marginBottom: 12 }}>
-            {isHost ? 'Match Settings (Host)' : 'Match Settings'}
-            {settingsUpdating && (
-              <span style={{ color: 'var(--yellow)', marginLeft: 8 }}>Saving…</span>
-            )}
+        <div className="panel online-settings-panel online-settings-simple">
+          <div className="settings-simple-header">
+            <div>
+              <div className="settings-eyebrow">{isHost ? 'Host setup' : 'Match setup'}</div>
+              <div className="settings-title">Choose the match vibe</div>
+            </div>
+            {settingsUpdating && <span className="settings-saving-pill">Saving…</span>}
           </div>
 
-          {/* Mode */}
-          <div className="gen-section">
-            <div className="gen-label">Mode</div>
-            <div className="gen-options">
-              {(['no-turns', 'with-turns'] as const).map(m => (
-                <button
-                  key={m}
-                  className={`gen-option-btn${localSettings.mode === m ? ' active' : ''}`}
-                  onClick={() => handleSettingChange({ mode: m })}
-                  disabled={!settingsEditable}
-                  style={!settingsEditable ? { opacity: 0.6, cursor: 'default' } : undefined}
-                >
-                  {m === 'no-turns' ? 'No Turns' : 'With Turns'}
-                </button>
-              ))}
-            </div>
+          <div className="settings-summary-strip" aria-label="Current match settings">
+            <span>{activePreset ? activePreset.title : 'Custom'}</span>
+            <span>{difficultyLabel}</span>
+            <span>{boardLabel}</span>
+            <span>{roundLabel}</span>
+            <span>{timeLabel}</span>
           </div>
 
-          {/* Difficulty */}
-          <div className="gen-section">
-            <div className="gen-label">Difficulty</div>
-            <div className="gen-options">
-              {ALL_DIFFICULTIES.map(d => (
-                <button
-                  key={d}
-                  className={`gen-option-btn${localSettings.difficulty === d ? ' active' : ''}`}
-                  onClick={() => handleSettingChange({ difficulty: d })}
-                  disabled={!settingsEditable}
-                  style={!settingsEditable ? { opacity: 0.6, cursor: 'default' } : undefined}
-                >
-                  {d}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Board size */}
-          <div className="gen-section">
-            <div className="gen-label">Board Size</div>
-            <div className="gen-options">
-              {BOARD_SIZES.map(([key, cfg]) => (
-                <button
-                  key={key}
-                  className={`gen-option-btn${localSettings.boardSize === key ? ' active' : ''}`}
-                  onClick={() => handleSettingChange({ boardSize: key })}
-                  disabled={!settingsEditable}
-                  style={!settingsEditable ? { opacity: 0.6, cursor: 'default' } : undefined}
-                >
-                  {cfg.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Rounds */}
-          <div className="gen-section">
-            <div className="gen-label">Rounds</div>
-            <div className="gen-options">
-              {ROUNDS_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  className={`gen-option-btn${localSettings.rounds === opt.value ? ' active' : ''}`}
-                  onClick={() => handleSettingChange({ rounds: opt.value })}
-                  disabled={!settingsEditable}
-                  style={!settingsEditable ? { opacity: 0.6, cursor: 'default' } : undefined}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-            {localSettings.rounds > 1 && (
-              <div style={{ fontSize: 6, color: 'var(--text-dim)', marginTop: 4 }}>
-                First to {Math.ceil(localSettings.rounds / 2)} wins takes the match.
+          {isHost ? (
+            <>
+              <div className="settings-preset-grid">
+                {MATCH_PRESETS.map(preset => {
+                  const isActive = sameSettings(localSettings, preset.settings);
+                  return (
+                    <button
+                      key={preset.id}
+                      className={`settings-preset-card${isActive ? ' active' : ''}`}
+                      onClick={() => handleSettingChange(preset.settings)}
+                      disabled={!settingsEditable}
+                      type="button"
+                    >
+                      <span className="settings-preset-badge">{preset.badge}</span>
+                      <strong>{preset.title}</strong>
+                      <small>{preset.subtitle}</small>
+                    </button>
+                  );
+                })}
               </div>
-            )}
-          </div>
 
-          {/* Time limit */}
-          <div className="gen-section">
-            <div className="gen-label">Time Limit</div>
-            <div className="gen-options">
-              {TIME_LIMIT_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  className={`gen-option-btn${localSettings.timeLimitSeconds === opt.value ? ' active' : ''}`}
-                  onClick={() => handleSettingChange({ timeLimitSeconds: opt.value })}
-                  disabled={!settingsEditable}
-                  style={!settingsEditable ? { opacity: 0.6, cursor: 'default' } : undefined}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-            {localSettings.timeLimitSeconds > 0 && (
-              <div style={{ fontSize: 6, color: 'var(--text-dim)', marginTop: 4 }}>
-                If time expires: solved player wins; otherwise fewer moves wins; draw if tied.
+              <div className="quick-tune-card">
+                <div className="quick-tune-row">
+                  <span>Difficulty</span>
+                  <div className="settings-pill-row compact">
+                    {ALL_DIFFICULTIES.map(d => (
+                      <button
+                        key={d}
+                        className={`settings-pill${localSettings.difficulty === d ? ' active' : ''}`}
+                        onClick={() => handleSettingChange({ difficulty: d })}
+                        disabled={!settingsEditable}
+                        type="button"
+                      >
+                        {d === 'Very Hard' ? 'V. Hard' : d}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="quick-tune-row">
+                  <span>Board</span>
+                  <div className="settings-pill-row">
+                    {BOARD_SIZES.map(([key, cfg]) => (
+                      <button
+                        key={key}
+                        className={`settings-pill${localSettings.boardSize === key ? ' active' : ''}`}
+                        onClick={() => handleSettingChange({ boardSize: key })}
+                        disabled={!settingsEditable}
+                        type="button"
+                      >
+                        {cfg.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="quick-tune-row">
+                  <span>Rounds</span>
+                  <div className="settings-pill-row">
+                    {ROUNDS_OPTIONS.map(opt => (
+                      <button
+                        key={opt.value}
+                        className={`settings-pill${localSettings.rounds === opt.value ? ' active' : ''}`}
+                        onClick={() => handleSettingChange({ rounds: opt.value })}
+                        disabled={!settingsEditable}
+                        type="button"
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
 
-          {/* Move limit */}
-          <div className="gen-section">
-            <div className="gen-label">Move Limit</div>
-            <div className="gen-options">
-              {MOVE_LIMIT_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  className={`gen-option-btn${localSettings.moveLimitMode === opt.value ? ' active' : ''}`}
-                  onClick={() => handleSettingChange({ moveLimitMode: opt.value })}
-                  disabled={!settingsEditable}
-                  style={!settingsEditable ? { opacity: 0.6, cursor: 'default' } : undefined}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-            {localSettings.moveLimitMode !== 'none' && (
-              <div style={{ fontSize: 6, color: 'var(--text-dim)', marginTop: 4 }}>
-                Limit calculated after puzzle generation (optimal moves + offset).
+              <button
+                className="settings-advanced-toggle"
+                onClick={() => setShowAdvancedSettings(v => !v)}
+                type="button"
+              >
+                <span>{showAdvancedSettings ? 'Hide advanced rules' : 'Advanced rules'}</span>
+                <small>{modeLabel} · {timeLabel} · {moveLimitLabel}</small>
+              </button>
+
+              {showAdvancedSettings && (
+                <div className="settings-advanced-card">
+                  <div className="quick-tune-row">
+                    <span>Turn rule</span>
+                    <div className="settings-pill-row">
+                      {(['no-turns', 'with-turns'] as const).map(m => (
+                        <button
+                          key={m}
+                          className={`settings-pill${localSettings.mode === m ? ' active' : ''}`}
+                          onClick={() => handleSettingChange({ mode: m })}
+                          disabled={!settingsEditable}
+                          type="button"
+                        >
+                          {m === 'no-turns' ? 'No turns' : 'With turns'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="quick-tune-row">
+                    <span>Timer</span>
+                    <div className="settings-pill-row compact">
+                      {TIME_LIMIT_OPTIONS.map(opt => (
+                        <button
+                          key={opt.value}
+                          className={`settings-pill${localSettings.timeLimitSeconds === opt.value ? ' active' : ''}`}
+                          onClick={() => handleSettingChange({ timeLimitSeconds: opt.value })}
+                          disabled={!settingsEditable}
+                          type="button"
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="quick-tune-row">
+                    <span>Move cap</span>
+                    <div className="settings-pill-row compact">
+                      {MOVE_LIMIT_OPTIONS.map(opt => (
+                        <button
+                          key={opt.value}
+                          className={`settings-pill${localSettings.moveLimitMode === opt.value ? ' active' : ''}`}
+                          onClick={() => handleSettingChange({ moveLimitMode: opt.value })}
+                          disabled={!settingsEditable}
+                          type="button"
+                        >
+                          {opt.label.replace('Optimal', 'Opt.')}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <p className="settings-hint">
+                    Advanced rules are optional. Move cap is calculated after generation from the optimal solution length.
+                  </p>
+                </div>
+              )}
+
+              {!settingsEditable && (
+                <div className="settings-lock-note">Settings are locked while the match is starting.</div>
+              )}
+            </>
+          ) : (
+            <div className="guest-settings-card">
+              <div className="guest-settings-title">Host selected</div>
+              <div className="guest-settings-grid">
+                <span>Mode <strong>{modeLabel}</strong></span>
+                <span>Difficulty <strong>{difficultyLabel}</strong></span>
+                <span>Board <strong>{boardLabel}</strong></span>
+                <span>Rounds <strong>{roundLabel}</strong></span>
+                <span>Timer <strong>{timeLabel}</strong></span>
+                <span>Moves <strong>{moveLimitLabel}</strong></span>
               </div>
-            )}
-          </div>
-
-          {/* Guest notices */}
-          {!isHost && settingsNotice && (
-            <div style={{ fontSize: 7, color: 'var(--yellow)', marginTop: 8, textAlign: 'center' }}>
-              ↑ {settingsNotice}
-            </div>
-          )}
-          {!isHost && !settingsNotice && (
-            <div style={{ fontSize: 7, color: 'var(--text-dim)', marginTop: 8, textAlign: 'center' }}>
-              Only the host can change settings
+              <div className={`guest-settings-note${settingsNotice ? ' active' : ''}`}>
+                {settingsNotice ? 'Host updated the setup' : 'Waiting for the host to start'}
+              </div>
             </div>
           )}
         </div>
