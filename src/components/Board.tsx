@@ -23,7 +23,7 @@ export default function Board({
   onCellClick,
   size = 'normal' as 'normal' | 'medium' | 'small' | 'tiny',
   showCoords = false,
-  maxWidth,
+  // maxWidth,
 }: Props) {
   if (cells.length === 0) return null;
 
