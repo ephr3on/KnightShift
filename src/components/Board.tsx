@@ -51,6 +51,8 @@ export default function Board({
   const cellPx = size === 'normal' ? 100 : size === 'medium' ? 52 : size === 'small' ? 26 : 18;
   const boardStyle = {
     '--base-cell-size': `${cellPx}px`,
+    '--board-cols': cols,
+    '--board-rows': rows,
   } as CSSProperties;
 
   // Build grid: row 0 = top (maxY), row last = bottom (minY)

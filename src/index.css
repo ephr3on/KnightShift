@@ -1376,3 +1376,324 @@ body {
     padding-top: 10px !important;
   }
 }
+
+/* --------------------------------------------------------------------------
+   Mobile play-screen refinement requested after first redesign
+   -------------------------------------------------------------------------- */
+.goal-panel {
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+@media (max-width: 900px) {
+  .game-screen {
+    --mobile-footer-height: clamp(86px, 15svh, 116px);
+    width: 100vw;
+    max-width: none;
+    height: 100svh;
+    min-height: 100svh;
+    margin: 0;
+    padding: 8px 5vw calc(8px + var(--safe-bottom));
+    overflow: hidden;
+    gap: 8px 10px;
+    align-items: stretch;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-auto-rows: auto;
+  }
+
+  .solo-game-screen {
+    grid-template-areas:
+      "title title"
+      "goal goal"
+      "board board"
+      "history controls";
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+  }
+
+  .online-race-screen {
+    grid-template-areas:
+      "title title"
+      "notice notice"
+      "goal goal"
+      "board board"
+      "left controls";
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  }
+
+  .game-title-row {
+    grid-area: title;
+    padding: 0;
+    min-height: 0;
+  }
+
+  .game-title {
+    font-size: clamp(9px, 3.2vw, 13px) !important;
+    line-height: 1.35;
+  }
+
+  .turn-indicator {
+    font-size: 7px;
+    line-height: 1.4;
+  }
+
+  .right-panel {
+    display: contents !important;
+    padding: 0 !important;
+  }
+
+  .goal-panel {
+    grid-area: goal;
+    width: 100%;
+    min-height: 48px;
+    margin: 0;
+    padding: 7px 9px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    overflow: hidden;
+  }
+
+  .goal-panel .goal-label {
+    border-bottom: 0;
+    padding-bottom: 0;
+    margin: 0;
+    font-size: 7px;
+    line-height: 1.35;
+    white-space: nowrap;
+  }
+
+  .goal-panel > div[style*="marginTop"] {
+    margin-top: 0 !important;
+  }
+
+  .goal-panel .board-wrapper.board-size-small {
+    --cell-size: clamp(13px, 4.3vw, 20px);
+  }
+
+  .goal-panel .chess-board {
+    box-shadow: 2px 2px 0 var(--btn-shadow);
+    border-width: 2px;
+  }
+
+  .board-area {
+    grid-area: board;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    padding: 0;
+    overflow: visible;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .board-area > div {
+    width: 90vw;
+    max-width: 90vw;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .board-area .board-wrapper.board-size-normal {
+    --cell-size: calc(90vw / var(--board-cols));
+    max-width: 90vw;
+    margin: 0 auto;
+    align-items: center;
+  }
+
+  .board-area .chess-board {
+    width: 90vw;
+    max-width: 90vw;
+    box-shadow: 3px 3px 0 var(--btn-shadow);
+  }
+
+  .board-area .board-row-coords,
+  .board-area .board-col-coords {
+    display: none !important;
+  }
+
+  .move-history-panel,
+  .online-status-panel {
+    grid-area: history;
+    position: relative;
+    width: 100%;
+    height: var(--mobile-footer-height);
+    max-height: var(--mobile-footer-height);
+    min-height: var(--mobile-footer-height);
+    padding: 8px !important;
+    overflow: hidden;
+  }
+
+  .online-race-screen .online-status-panel {
+    grid-area: left;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 6px 8px;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+
+  .online-race-screen .online-status-panel::-webkit-scrollbar {
+    display: none;
+  }
+
+  .move-history-panel .panel-title,
+  .mobile-race-history-section .panel-title {
+    font-size: 6px;
+    padding-bottom: 4px;
+    margin-bottom: 3px;
+  }
+
+  .move-history-panel .moves-count {
+    font-size: 6px;
+    padding-top: 4px;
+    margin-top: 3px;
+  }
+
+  .move-history-panel .move-history-list {
+    min-height: 0;
+    max-height: none;
+    flex: 1;
+    font-size: 6px;
+    line-height: 1.45;
+    overscroll-behavior: contain;
+  }
+
+  .move-history-item {
+    padding: 2px 3px;
+    line-height: 1.45;
+  }
+
+  .move-history-panel.has-older-moves::before,
+  .mobile-race-history-section.has-older-moves::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    top: 27px;
+    height: 16px;
+    pointer-events: none;
+    z-index: 4;
+    background: linear-gradient(to bottom, rgba(245, 158, 11, 0.38), rgba(245, 158, 11, 0));
+    filter: blur(0.2px);
+  }
+
+  .solo-game-screen .action-buttons,
+  .online-race-screen .action-buttons {
+    grid-area: controls;
+    width: 100%;
+    height: var(--mobile-footer-height);
+    min-height: var(--mobile-footer-height);
+    max-height: var(--mobile-footer-height);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-auto-rows: 1fr;
+    gap: 7px;
+    align-self: stretch;
+  }
+
+  .solo-game-screen .action-buttons .pixel-btn,
+  .online-race-screen .action-buttons .pixel-btn {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    padding: 6px 5px;
+    font-size: clamp(6px, 1.75vw, 8px) !important;
+    line-height: 1.35;
+    white-space: normal;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .online-race-screen .race-opponent-section,
+  .online-race-screen .race-moves-section,
+  .online-race-screen .race-leave-section {
+    border-top: 0 !important;
+    border-left: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-width: 0;
+  }
+
+  .online-race-screen .race-moves-section,
+  .online-race-screen .race-leave-section {
+    grid-column: 1 / -1;
+  }
+
+  .mobile-race-history-section {
+    position: relative;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .mobile-race-history-section .move-history-list {
+    max-height: 38px !important;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .online-race-screen .race-leave-section .pixel-btn {
+    min-height: 28px;
+    padding: 5px 7px;
+    font-size: 6px !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .game-screen {
+    --mobile-footer-height: clamp(82px, 14svh, 106px);
+    padding-left: 5vw;
+    padding-right: 5vw;
+    gap: 7px 8px;
+  }
+
+  .board-area .board-wrapper.board-size-normal {
+    --cell-size: calc(90vw / var(--board-cols));
+  }
+
+  .solo-game-screen .action-buttons,
+  .online-race-screen .action-buttons {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .goal-panel {
+    min-height: 44px;
+    padding: 6px 8px !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .game-screen {
+    --mobile-footer-height: 80px;
+    gap: 6px;
+  }
+
+  .goal-panel .goal-label {
+    font-size: 6px;
+  }
+
+  .goal-panel .board-wrapper.board-size-small {
+    --cell-size: clamp(11px, 3.9vw, 16px);
+  }
+}
+
+@media (max-width: 900px) {
+  .solo-game-screen .right-panel,
+  .online-race-screen .right-panel {
+    display: contents !important;
+  }
+
+  .board-area .board-wrapper.board-size-normal {
+    --cell-size: calc((90vw - 6px) / var(--board-cols));
+  }
+
+  .board-area .chess-board {
+    width: auto;
+    max-width: 90vw;
+  }
+}
