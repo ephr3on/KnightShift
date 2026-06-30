@@ -146,7 +146,7 @@ export default function GameScreen({ puzzle, onBack, onBackToMenu }: Props) {
   const titleLabel = `${puzzle.name} (${modeLabel})`;
 
   return (
-    <div className="game-screen">
+    <div className="game-screen solo-game-screen">
       {/* Title row */}
       <div className="game-title-row">
         <div className="game-title">{titleLabel}</div>

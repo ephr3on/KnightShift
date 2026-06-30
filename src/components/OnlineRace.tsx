@@ -315,7 +315,7 @@ export default function OnlineRace({
   const currentRound = room.currentRound ?? 1;
 
   return (
-    <div className="game-screen">
+    <div className="game-screen online-race-screen">
       {/* Leave confirmation overlay */}
       {showLeaveConfirm && (
         <div className="online-leave-overlay">
@@ -438,7 +438,7 @@ export default function OnlineRace({
         )}
 
         {/* Opponent section */}
-        <div style={{ borderTop: '2px solid var(--border)', paddingTop: 12, marginTop: 4 }}>
+        <div className="race-opponent-section" style={{ borderTop: '2px solid var(--border)', paddingTop: 12, marginTop: 4 }}>
           <div className="panel-title" style={{ marginBottom: 8 }}>Opponent</div>
           {opponentData ? (
             <>
@@ -479,7 +479,7 @@ export default function OnlineRace({
         </div>
 
         {/* Move history */}
-        <div style={{ borderTop: '2px solid var(--border)', paddingTop: 10, marginTop: 12 }}>
+        <div className="race-moves-section" style={{ borderTop: '2px solid var(--border)', paddingTop: 10, marginTop: 12 }}>
           <div className="panel-title" style={{ marginBottom: 6 }}>Moves</div>
           <div className="move-history-list" style={{ maxHeight: 120 }}>
             {history.slice(-8).map((m, i) => (
@@ -494,7 +494,7 @@ export default function OnlineRace({
           </div>
         </div>
 
-        <div style={{ marginTop: 'auto', paddingTop: 16 }}>
+        <div className="race-leave-section" style={{ marginTop: 'auto', paddingTop: 16 }}>
           <PixelButton
             onClick={() => setShowLeaveConfirm(true)}
             style={{ fontSize: 8, width: '100%' }}
