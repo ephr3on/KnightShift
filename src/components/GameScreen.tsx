@@ -146,7 +146,7 @@ export default function GameScreen({ puzzle, onBack, onBackToMenu }: Props) {
   const titleLabel = `${puzzle.name} (${modeLabel})`;
 
   return (
-    <div className="game-screen solo-game-screen">
+    <div className="game-screen">
       {/* Title row */}
       <div className="game-title-row">
         <div className="game-title">{titleLabel}</div>
@@ -161,9 +161,9 @@ export default function GameScreen({ puzzle, onBack, onBackToMenu }: Props) {
       </div>
 
       {/* Left panel: Moves History */}
-      <div className={`panel left-panel move-history-panel ${history.length > 4 ? 'has-older-moves' : ''}`}>
+      <div className="panel left-panel">
         <div className="panel-title">Moves History</div>
-        <div className={`move-history-list ${history.length > 4 ? 'has-older-moves' : ''}`} ref={historyRef}>
+        <div className="move-history-list" ref={historyRef}>
           {history.map((m, i) => (
             <div
               key={i}
@@ -198,7 +198,7 @@ export default function GameScreen({ puzzle, onBack, onBackToMenu }: Props) {
       {/* Right panel */}
       <div className="right-panel" style={{ padding: 0 }}>
         {/* Goal preview */}
-        <div className="panel goal-panel">
+        <div className="panel" style={{ padding: 10, marginBottom: 10 }}>
           <div className="goal-label">Puzzle Goal:</div>
           <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center' }}>
             <Board
@@ -215,7 +215,28 @@ export default function GameScreen({ puzzle, onBack, onBackToMenu }: Props) {
           </div>
         </div>
 
-
+        {/* Possible Moves */}
+        <div className="panel possible-moves-panel" style={{ marginBottom: 10 }}>
+          <div className="panel-title">Possible Moves</div>
+          <div className="possible-moves-list">
+            {selectedPiece && possibleMoves.length > 0 ? (
+              possibleMoves.map(cell => (
+                <div
+                  key={cell}
+                  className="possible-move-item"
+                  onClick={() => handleCellClick(cell)}
+                >
+                  {selectedPiece.color === 'white' ? '♘' : '♞'}{' '}
+                  {selectedPiece.cell} -&gt; {cell}
+                </div>
+              ))
+            ) : (
+              <div style={{ fontSize: 7, color: 'var(--text-dim)', padding: 4 }}>
+                {selectedPiece ? 'No valid moves' : 'Select a knight'}
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Action buttons */}
         <div className="action-buttons">

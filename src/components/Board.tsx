@@ -1,4 +1,3 @@
-import type { CSSProperties } from 'react';
 import type { Piece, GoalGroup } from '../types';
 import { parseCell, toCell } from '../gameLogic';
 import KnightPiece from './KnightPiece';
@@ -49,11 +48,6 @@ export default function Board({
   );
 
   const cellPx = size === 'normal' ? 100 : size === 'medium' ? 52 : size === 'small' ? 26 : 18;
-  const boardStyle = {
-    '--base-cell-size': `${cellPx}px`,
-    '--board-cols': cols,
-    '--board-rows': rows,
-  } as CSSProperties;
 
   // Build grid: row 0 = top (maxY), row last = bottom (minY)
   const gridRows: Array<Array<string | null>> = [];
@@ -69,13 +63,13 @@ export default function Board({
   }
 
   return (
-    <div className={`board-wrapper board-size-${size}`} style={boardStyle}>
+    <div className="board-wrapper">
       <div
         className="chess-board"
         style={{
           display: 'grid',
-          gridTemplateRows: `repeat(${rows}, var(--cell-size, ${cellPx}px))`,
-          gridTemplateColumns: `repeat(${cols}, var(--cell-size, ${cellPx}px))`,
+          gridTemplateRows: `repeat(${rows}, ${cellPx}px)`,
+          gridTemplateColumns: `repeat(${cols}, ${cellPx}px)`,
         }}
       >
         {gridRows.map((row, rowIdx) =>
@@ -85,7 +79,7 @@ export default function Board({
                 <div
                   key={`empty-${rowIdx}-${colIdx}`}
                   className={`chess-cell empty-slot${size === 'medium' ? ' medium' : ''}`}
-                  style={{ width: 'var(--cell-size)', height: 'var(--cell-size)' }}
+                  style={{ width: cellPx, height: cellPx }}
                 />
               );
             }
@@ -112,7 +106,7 @@ export default function Board({
               <div
                 key={cell}
                 className={classes + (size === 'medium' ? ' medium' : '')}
-                style={{ width: 'var(--cell-size)', height: 'var(--cell-size)' }}
+                style={{ width: cellPx, height: cellPx }}
                 onClick={() => onCellClick?.(cell)}
               >
                 {piece && (
@@ -124,8 +118,8 @@ export default function Board({
                 {isPossible && !piece && (
                   <div style={{
                     position: 'absolute',
-                    width: 'calc(var(--cell-size) * 0.28)',
-                    height: 'calc(var(--cell-size) * 0.28)',
+                    width: cellPx * 0.28,
+                    height: cellPx * 0.28,
                     borderRadius: '50%',
                     background: 'rgba(52,211,153,0.55)',
                     zIndex: 1,
@@ -158,7 +152,7 @@ export default function Board({
                 <div
                   key={y}
                   className="coord-num"
-                  style={{ height: 'var(--cell-size)', lineHeight: 'var(--cell-size)' }}
+                  style={{ height: cellPx, lineHeight: `${cellPx}px` }}
                 >
                   {y + 1}
                 </div>
@@ -177,7 +171,7 @@ export default function Board({
                 <div
                   key={x}
                   className="coord-letter"
-                  style={{ width: 'var(--cell-size)', textAlign: 'center' }}
+                  style={{ width: cellPx, textAlign: 'center' }}
                 >
                   {String.fromCharCode(97 + x)}
                 </div>

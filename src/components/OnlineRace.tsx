@@ -77,7 +77,6 @@ export default function OnlineRace({
   const timeLimitExpiredRef = useRef(false);
   const finishedRef = useRef(false);
   const historyLengthRef = useRef(0);
-  const localHistoryRef = useRef<HTMLDivElement>(null);
   const startedAtMsRef = useRef<number | null>(
     getTimestampMillis(initialRoom.timeLimitStartedAt),
   );
@@ -87,11 +86,6 @@ export default function OnlineRace({
   useEffect(() => { onFinishRef.current = onFinish; }, [onFinish]);
   useEffect(() => { latestRoomRef.current = room; }, [room]);
   useEffect(() => { historyLengthRef.current = history.length; }, [history.length]);
-  useEffect(() => {
-    if (localHistoryRef.current) {
-      localHistoryRef.current.scrollTop = localHistoryRef.current.scrollHeight;
-    }
-  }, [history]);
 
   const gameOver = won || moveLimitHit || timeLimitExpired;
 
@@ -321,7 +315,7 @@ export default function OnlineRace({
   const currentRound = room.currentRound ?? 1;
 
   return (
-    <div className="game-screen online-race-screen">
+    <div className="game-screen">
       {/* Leave confirmation overlay */}
       {showLeaveConfirm && (
         <div className="online-leave-overlay">
@@ -395,7 +389,7 @@ export default function OnlineRace({
       )}
 
       {/* Left panel */}
-      <div className="panel left-panel online-status-panel">
+      <div className="panel left-panel">
         {reconnectedWithProgress && (
           <div style={{ fontSize: 7, color: 'var(--yellow)', marginBottom: 8, textAlign: 'center' }}>
             ↻ Reconnected — progress restored
@@ -444,7 +438,7 @@ export default function OnlineRace({
         )}
 
         {/* Opponent section */}
-        <div className="race-opponent-section" style={{ borderTop: '2px solid var(--border)', paddingTop: 12, marginTop: 4 }}>
+        <div style={{ borderTop: '2px solid var(--border)', paddingTop: 12, marginTop: 4 }}>
           <div className="panel-title" style={{ marginBottom: 8 }}>Opponent</div>
           {opponentData ? (
             <>
@@ -485,22 +479,22 @@ export default function OnlineRace({
         </div>
 
         {/* Move history */}
-        <div className={`race-moves-section mobile-race-history-section ${history.length > 4 ? 'has-older-moves' : ''}`} style={{ borderTop: '2px solid var(--border)', paddingTop: 10, marginTop: 12 }}>
+        <div style={{ borderTop: '2px solid var(--border)', paddingTop: 10, marginTop: 12 }}>
           <div className="panel-title" style={{ marginBottom: 6 }}>Moves</div>
-          <div className={`move-history-list ${history.length > 4 ? 'has-older-moves' : ''}`} ref={localHistoryRef} style={{ maxHeight: 120 }}>
-            {history.map((m, i) => (
+          <div className="move-history-list" style={{ maxHeight: 120 }}>
+            {history.slice(-8).map((m, i) => (
               <div
-                key={i}
+                key={history.length - 8 + i}
                 className={`move-history-item ${m.color}`}
                 style={{ fontSize: 6 }}
               >
-                {i + 1}. {getMoveNotation(m.color, m.from, m.to)}
+                {history.length - 8 + i + 1}. {getMoveNotation(m.color, m.from, m.to)}
               </div>
             ))}
           </div>
         </div>
 
-        <div className="race-leave-section" style={{ marginTop: 'auto', paddingTop: 16 }}>
+        <div style={{ marginTop: 'auto', paddingTop: 16 }}>
           <PixelButton
             onClick={() => setShowLeaveConfirm(true)}
             style={{ fontSize: 8, width: '100%' }}
@@ -528,7 +522,7 @@ export default function OnlineRace({
 
       {/* Right panel */}
       <div className="right-panel" style={{ padding: 0 }}>
-        <div className="panel goal-panel">
+        <div className="panel" style={{ padding: 10, marginBottom: 10 }}>
           <div className="goal-label">Goal:</div>
           <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center' }}>
             <Board
