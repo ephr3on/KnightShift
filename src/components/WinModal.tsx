@@ -9,12 +9,11 @@ interface Props {
   onBack: () => void;
 }
 
-export default function WinModal({ moves, optimalMoves, personalBest, isNewBest, onRestart, onBack }: Props) {
+export default function WinModal({ moves, optimalMoves, personalBest, onRestart, onBack }: Props) {
   return (
     <div className="modal-overlay">
       <div className="panel modal-box">
         <div className="modal-title">Puzzle Solved!</div>
-        {isNewBest && <div className="modal-subtitle">New Personal Best!</div>}
         <div className="modal-stat">
           Moves Made: {moves}<br />
           Optimal Moves: {optimalMoves > 0 ? optimalMoves : '?'}<br />

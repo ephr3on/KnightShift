@@ -239,7 +239,6 @@ export default function OnlineResult({
     <div className="menu-screen online-result-shell" style={{ overflowY: 'auto' }}>
       <ScreenHeader
         title="Round Result"
-        subtitle={rounds_setting > 1 ? `Round ${currentRound} of ${rounds_setting} · ${headline}` : headline}
         onBack={handleBackToLobby}
         backLabel={canContinueRoom ? "Lobby" : "Menu"}
         right={<PixelButton variant="danger" className="screen-header-btn" onClick={handleLeave}>Leave</PixelButton>}

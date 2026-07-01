@@ -57,7 +57,6 @@ export default function SavedPuzzles({ onPlay, onBack }: Props) {
     <div className="select-screen">
       <ScreenHeader
         title="Saved Puzzles"
-        subtitle="Import, replay, and manage your saved custom boards."
         onBack={onBack}
         backLabel="Menu"
       />
@@ -97,7 +96,7 @@ export default function SavedPuzzles({ onPlay, onBack }: Props) {
       {/* Saved List */}
       {puzzles.length === 0 ? (
         <div style={{ fontSize: 9, color: 'var(--text-dim)', textAlign: 'center', marginTop: 24 }}>
-          No saved puzzles yet.<br />Generate puzzles in Custom Puzzle and save them.
+          No saved puzzles yet.
         </div>
       ) : (
         <div className="puzzle-cards">

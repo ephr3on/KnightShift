@@ -343,8 +343,6 @@ export default function OnlineRace({
     : 'var(--text-dim)';
 
   const timeCritical = timeRemaining !== null && timeRemaining <= 30;
-  const rounds = room.puzzleConfig.rounds;
-  const currentRound = room.currentRound ?? 1;
 
   return (
     <div className="game-screen online-race-screen">
@@ -378,7 +376,6 @@ export default function OnlineRace({
       <ScreenHeader
         className="race-screen-header"
         title="Online Race"
-        subtitle={`${rounds > 1 ? `Round ${currentRound} of ${rounds} · ` : ''}${puzzle.difficulty} · ${room.puzzleConfig.boardSize} board${withTurns && !gameOver ? ` · Turn: ${turn === 'white' ? 'White' : 'Black'}` : ''}`}
         right={
           <>
             <div className={`online-race-clock${timeCritical ? ' critical' : ''}`}>

@@ -131,14 +131,14 @@ interface Props {
   onLeave: () => void;
 }
 
-export default function OnlineLobby({ roomCode, playerId, playerName, onGameStart, onLeave }: Props) {
+export default function OnlineLobby({ roomCode, playerId, onGameStart, onLeave }: Props) {
   const [room, setRoom] = useState<OnlineRoom | null>(null);
   const [countdown, setCountdown] = useState(3);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
   const [copiedInvite, setCopiedInvite] = useState(false);
   const [showInviteQr, setShowInviteQr] = useState(false);
-  const [settingsNotice, setSettingsNotice] = useState('');
+  const [, setSettingsNotice] = useState('');
   const [localSettings, setLocalSettings] = useState<OnlineMatchSettings>(DEFAULT_MATCH_SETTINGS);
   const [roomClosed, setRoomClosed] = useState(false);
   const [settingsUpdating, setSettingsUpdating] = useState(false);
@@ -401,15 +401,6 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
   const difficultyLabel = localSettings.difficulty;
   const timeLabel = formatTimeLimit(localSettings.timeLimitSeconds);
   const moveLimitLabel = formatMoveLimit(localSettings.moveLimitMode);
-  const startBlockedReason = !opponentData
-    ? 'Waiting for opponent to join.'
-    : !isPlayerOnline(opponentData)
-      ? 'Opponent is offline.'
-      : !bothReady
-        ? 'Both players must press Ready.'
-        : settingsUpdating
-          ? 'Settings are still saving.'
-          : '';
   const inviteLink = getInviteLink();
 
   // ── Special states ───────────────────────────────────────────────────────────
@@ -417,10 +408,9 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
   if (roomClosed) {
     return (
       <div className="select-screen online-room-shell">
-        <ScreenHeader title="Room Closed" subtitle="The host has closed this room." onBack={onLeave} backLabel="Menu" />
+        <ScreenHeader title="Room Closed" onBack={onLeave} backLabel="Menu" />
         <div className="online-connecting">
           <div style={{ fontSize: 10, color: 'var(--red)', marginBottom: 12 }}>Room Closed</div>
-          <div style={{ fontSize: 8, color: 'var(--text-dim)' }}>Use the header button to return to the menu.</div>
         </div>
       </div>
     );
@@ -429,7 +419,7 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
   if (!room) {
     return (
       <div className="select-screen online-room-shell">
-        <ScreenHeader title="Connecting" subtitle="Restoring your online room…" />
+        <ScreenHeader title="Connecting" />
         <div className="online-connecting">
           <div className="gen-spinner" style={{ fontSize: 28, marginBottom: 16 }}>♞</div>
           <div style={{ fontSize: 9, color: 'var(--yellow)' }}>Connecting…</div>
@@ -443,18 +433,12 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
       <div className="select-screen online-room-shell">
         <ScreenHeader
           title="Preparing Match"
-          subtitle={isHost ? 'Generating a verified shared puzzle…' : 'Waiting for the host device to generate the puzzle…'}
           right={<PixelButton variant="danger" className="screen-header-btn" onClick={handleLeave}>Leave</PixelButton>}
         />
         <div className="online-connecting">
           <div className="gen-spinner" style={{ fontSize: 36, marginBottom: 16 }}>♞</div>
           <div style={{ fontSize: 10, color: 'var(--yellow)', marginBottom: 8 }}>
             {isHost ? 'Generating puzzle…' : 'Host is generating the puzzle…'}
-          </div>
-          <div style={{ fontSize: 7, color: 'var(--text-dim)' }}>
-            {isHost
-              ? 'Hold on — this may take a few seconds'
-              : 'Please wait — the puzzle will appear shortly'}
           </div>
         </div>
         {error && <div className="online-error" style={{ marginTop: 16 }}>{error}</div>}
@@ -473,7 +457,6 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
     <div className="select-screen online-room-shell">
       <ScreenHeader
         title="Room Lobby"
-        subtitle={`Code ${roomCode} · You: ${playerName} · ${isHost ? 'Host controls the setup' : 'Waiting for host setup'}`}
         right={<PixelButton variant="danger" className="screen-header-btn" onClick={handleLeave}>Leave</PixelButton>}
       />
 
@@ -525,9 +508,6 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
           </div>
         )}
 
-        <div className="invite-helper-text">
-          The invite opens Online Race directly. The guest only enters their name.
-        </div>
       </div>
 
       {/* Players */}
@@ -674,7 +654,6 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
                     >
                       <span className="settings-preset-badge">{preset.badge}</span>
                       <strong>{preset.title}</strong>
-                      <small>{preset.subtitle}</small>
                     </button>
                   );
                 })}
@@ -795,15 +774,9 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
                     </div>
                   </div>
 
-                  <p className="settings-hint">
-                    Advanced rules are optional. Move cap is calculated after generation from the optimal solution length.
-                  </p>
                 </div>
               )}
 
-              {!settingsEditable && (
-                <div className="settings-lock-note">Settings are locked while the match is starting.</div>
-              )}
             </>
           ) : (
             <div className="guest-settings-card">
@@ -815,9 +788,6 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
                 <span>Rounds <strong>{roundLabel}</strong></span>
                 <span>Timer <strong>{timeLabel}</strong></span>
                 <span>Moves <strong>{moveLimitLabel}</strong></span>
-              </div>
-              <div className={`guest-settings-note${settingsNotice ? ' active' : ''}`}>
-                {settingsNotice ? 'Host updated the setup' : 'Waiting for the host to start'}
               </div>
             </div>
           )}
@@ -864,15 +834,6 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
             )}
           </div>
 
-          <div className="online-ready-note">
-            {canStartMatch
-              ? 'Both players are ready. Start the match when you are set.'
-              : isHost
-                ? startBlockedReason
-                : myReady
-                  ? 'Ready locked. The host will start the match.'
-                  : 'Review the setup, then press Ready.'}
-          </div>
         </div>
       )}
 

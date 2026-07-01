@@ -68,7 +68,6 @@ export default function OnlineMenu({ onRoomReady, onBack, initialJoinCode = '' }
     <div className="select-screen online-menu-shell">
       <ScreenHeader
         title={inviteMode ? 'Join Invite' : 'Online Race'}
-        subtitle={inviteMode ? `Room ${invitedCode} is ready. Enter your name to join.` : 'Create a private room or join with a code.'}
         onBack={onBack}
         backLabel="Menu"
       />
@@ -77,7 +76,6 @@ export default function OnlineMenu({ onRoomReady, onBack, initialJoinCode = '' }
         <div className="panel invite-entry-card">
           <div className="invite-entry-badge">Invite Link</div>
           <div className="invite-entry-code">{invitedCode}</div>
-          <p>One step left: write your player name and join the lobby.</p>
         </div>
       )}
 
@@ -99,7 +97,6 @@ export default function OnlineMenu({ onRoomReady, onBack, initialJoinCode = '' }
         {!inviteMode && (
           <div className="panel online-menu-card">
             <div className="panel-title">Create Room</div>
-            <p className="online-card-desc">Start a new private room and share an invite link or QR code with a friend.</p>
             <PixelButton variant="primary" onClick={handleCreate} disabled={loading !== null}>
               {loading === 'create' ? 'Creating…' : 'Create Room'}
             </PixelButton>
@@ -108,9 +105,6 @@ export default function OnlineMenu({ onRoomReady, onBack, initialJoinCode = '' }
 
         <div className="panel online-menu-card">
           <div className="panel-title">{inviteMode ? 'Join This Room' : 'Join Room'}</div>
-          <p className="online-card-desc">
-            {inviteMode ? 'The invite code is already filled in from the link.' : 'Enter the room code your friend sent you.'}
-          </p>
           <input
             className="gen-seed-input online-code-input"
             value={joinCode}

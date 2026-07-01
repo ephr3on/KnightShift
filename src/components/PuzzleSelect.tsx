@@ -36,7 +36,6 @@ export default function PuzzleSelect({ onPlay, onBack, initialMode = 'no-turns' 
     <div className="select-screen">
       <ScreenHeader
         title={mode === 'no-turns' ? 'Training Archive' : 'Turn Rules'}
-        subtitle={mode === 'no-turns' ? 'Classic verified boards without turn restrictions.' : 'Verified boards with alternating turns.'}
         onBack={onBack}
         backLabel="Menu"
       />

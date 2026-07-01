@@ -12,7 +12,6 @@ interface ScreenHeaderProps {
 
 export default function ScreenHeader({
   title,
-  subtitle,
   onBack,
   backLabel = 'Back',
   right,
@@ -30,7 +29,6 @@ export default function ScreenHeader({
       <div className="screen-header-copy">
         <div className="screen-header-kicker">KnightShift</div>
         <h1>{title}</h1>
-        {subtitle && <p>{subtitle}</p>}
       </div>
       <div className="screen-header-action screen-header-action-right">
         {right}

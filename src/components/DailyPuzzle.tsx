@@ -109,7 +109,6 @@ export default function DailyPuzzle({ onPlay, onBack }: Props) {
     <div className="select-screen">
       <ScreenHeader
         title="Daily Puzzle"
-        subtitle={`${today} · same puzzle for everyone today`}
         onBack={onBack}
         backLabel="Menu"
       />
@@ -120,8 +119,6 @@ export default function DailyPuzzle({ onPlay, onBack }: Props) {
           return (
             <div key={slot.mode} className="panel daily-slot">
               <div className="daily-slot-title">{slot.label}</div>
-              <div style={{ fontSize: 8, color: 'var(--text-dim)', marginBottom: 12 }}>Daily — {today}</div>
-
               {slot.status === 'generating' && (
                 <div className="gen-loading" style={{ gap: 8, padding: 16 }}>
                   <div className="gen-spinner" style={{ fontSize: 20 }}>♞</div>

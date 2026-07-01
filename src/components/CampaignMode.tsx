@@ -61,7 +61,6 @@ export default function CampaignMode({ onPlay, onBack }: Props) {
     <main className="campaign-screen" aria-label="KnightShift level journey">
       <ScreenHeader
         title="Level Journey"
-        subtitle={`${completedCount}/${CAMPAIGN_TOTAL_LEVELS} complete · unlocked to level ${unlockedLimit}`}
         onBack={onBack}
         backLabel="Menu"
       />
@@ -69,11 +68,6 @@ export default function CampaignMode({ onPlay, onBack }: Props) {
         <div className="campaign-hero-copy">
           <div className="brand-pill">♞ Main Journey · 120 curated levels</div>
           <h1 className="campaign-title">Level Journey</h1>
-          <p className="campaign-subtitle">
-            A handcrafted progression path where each level opens only when you are close enough.
-            The custom generator is still there, but this is the main game.
-          </p>
-
           <div className="campaign-progress-shell" aria-label="Campaign progress">
             <div className="campaign-progress-meta">
               <strong>{completedCount}/{CAMPAIGN_TOTAL_LEVELS}</strong>
@@ -115,7 +109,6 @@ export default function CampaignMode({ onPlay, onBack }: Props) {
               <div>
                 <div className="campaign-zone-range">{zone.range}</div>
                 <h2>{zone.title}</h2>
-                <p>{zone.description}</p>
               </div>
               <div className="campaign-zone-count">
                 {zone.completed}/{zone.puzzles.length}
@@ -158,16 +151,11 @@ export default function CampaignMode({ onPlay, onBack }: Props) {
       </section>
 
       <footer className="campaign-footer panel">
-        <div>
-          <strong>Custom puzzles moved.</strong>
-          <span> Use Custom Puzzle from the main menu when you want to build a board with a specific difficulty.</span>
-        </div>
         <PixelButton variant="ghost" className="btn-compact" onClick={() => setShowReset(v => !v)}>
           Progress options
         </PixelButton>
         {showReset && (
           <div className="campaign-reset-row">
-            <span>Reset only the Journey progress saved on this device.</span>
             <PixelButton variant="danger" className="btn-compact" onClick={handleReset}>Reset Journey</PixelButton>
           </div>
         )}

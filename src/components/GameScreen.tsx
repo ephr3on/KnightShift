@@ -142,7 +142,6 @@ export default function GameScreen({ puzzle, onBack, onBackToMenu }: Props) {
   };
 
 
-  const modeLabel = puzzle.mode === 'no-turns' ? 'No Turns' : 'With Turns';
   const hintFrom = hint?.ok ? hint.from : null;
   const hintTo = hint?.ok ? hint.to : null;
 
@@ -150,7 +149,6 @@ export default function GameScreen({ puzzle, onBack, onBackToMenu }: Props) {
     <div className="game-screen solo-game-screen">
       <ScreenHeader
         title={puzzle.name}
-        subtitle={`${modeLabel} · Optimal ${puzzle.optimalMoves} moves${puzzle.campaignLevel ? ` · Level ${puzzle.campaignLevel}` : ''}`}
         onBack={onBack}
         backLabel="Back"
         right={withTurns && !won ? (

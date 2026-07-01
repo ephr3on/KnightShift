@@ -25,11 +25,6 @@ export default function MainMenu({ onNoTurn, onCredits, onCampaign, onUnlimited,
         <div className="menu-hero-copy">
           <div className="brand-pill">♞ 120-level Journey · Smart progression</div>
           <h1 className="menu-title">KnightShift</h1>
-          <p className="menu-subtitle">
-            The main game is now a locked level journey: curated boards, rising difficulty,
-            and late levels that open only when your skill gets close enough.
-          </p>
-
           <div className="menu-primary-actions">
             <PixelButton variant="primary" className="menu-main-cta" onClick={onCampaign}>
               Start Journey
@@ -56,17 +51,14 @@ export default function MainMenu({ onNoTurn, onCredits, onCampaign, onUnlimited,
         <button type="button" className="mode-card mode-card-online panel" onClick={onOnline}>
           <span className="mode-card-icon">⚡</span>
           <strong>Online Race</strong>
-          <small>Same board, same pressure, faster mind wins.</small>
         </button>
         <button type="button" className="mode-card panel" onClick={onUnlimited}>
           <span className="mode-card-icon">⚙</span>
           <strong>Custom Puzzle</strong>
-          <small>Build a special puzzle by difficulty, seed, and board size.</small>
         </button>
         <button type="button" className="mode-card panel" onClick={onNoTurn}>
           <span className="mode-card-icon">♜</span>
           <strong>Training Archive</strong>
-          <small>Classic hand-made puzzles and turn-rule practice.</small>
         </button>
       </section>
 

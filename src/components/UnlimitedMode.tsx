@@ -155,7 +155,6 @@ export default function UnlimitedMode({ onPlay, onBack }: Props) {
     <div className="unlimited-screen">
       <ScreenHeader
         title="Custom Puzzle"
-        subtitle="Build a one-off board by difficulty, size, mode, and seed."
         onBack={onBack}
         backLabel="Menu"
       />
