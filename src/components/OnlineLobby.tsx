@@ -137,7 +137,7 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
   const [copiedInvite, setCopiedInvite] = useState(false);
-  const [showInviteQr, setShowInviteQr] = useState(true);
+  const [showInviteQr, setShowInviteQr] = useState(false);
   const [settingsNotice, setSettingsNotice] = useState('');
   const [localSettings, setLocalSettings] = useState<OnlineMatchSettings>(DEFAULT_MATCH_SETTINGS);
   const [roomClosed, setRoomClosed] = useState(false);
@@ -484,31 +484,39 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
         <div style={{ fontSize: 8, color: 'var(--text-dim)', marginBottom: 8 }}>Invite Room</div>
         <div className="online-code-display">{roomCode}</div>
 
-        <div className="invite-action-grid">
-          <PixelButton variant="secondary" className="btn-compact" onClick={handleCopyCode}>
-            {copied ? '✓ Code Copied' : 'Copy Code'}
-          </PixelButton>
-          <PixelButton variant="primary" className="btn-compact" onClick={handleCopyInviteLink}>
-            {copiedInvite ? '✓ Link Copied' : 'Copy Link'}
-          </PixelButton>
+        <div className="invite-icon-actions" aria-label="Invite actions">
+          <button
+            type="button"
+            className="invite-icon-btn"
+            onClick={handleCopyCode}
+            aria-label="Copy room code"
+            title={copied ? 'Code copied' : 'Copy room code'}
+          >
+            #
+          </button>
+          <button
+            type="button"
+            className="invite-icon-btn primary"
+            onClick={handleCopyInviteLink}
+            aria-label="Copy invite link"
+            title={copiedInvite ? 'Link copied' : 'Copy invite link'}
+          >
+            🔗
+          </button>
+          <button
+            type="button"
+            className={`invite-icon-btn${showInviteQr ? ' active' : ''}`}
+            onClick={() => setShowInviteQr(v => !v)}
+            aria-label={showInviteQr ? 'Hide QR code' : 'Show QR code'}
+            title={showInviteQr ? 'Hide QR code' : 'Show QR code'}
+          >
+            ▦
+          </button>
         </div>
 
-        <button
-          type="button"
-          className="invite-link-preview"
-          onClick={handleCopyInviteLink}
-          title={inviteLink}
-        >
-          {inviteLink.replace(/^https?:\/\//, '')}
-        </button>
-
-        <button
-          type="button"
-          className="invite-qr-toggle"
-          onClick={() => setShowInviteQr(v => !v)}
-        >
-          {showInviteQr ? 'Hide QR Code' : 'Show QR Code'}
-        </button>
+        <div className={`invite-feedback-line${copied || copiedInvite ? ' visible' : ''}`} aria-live="polite">
+          {copiedInvite ? 'Invite link copied' : copied ? 'Room code copied' : ' '}
+        </div>
 
         {showInviteQr && (
           <div className="invite-qr-shell">
@@ -517,8 +525,8 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
           </div>
         )}
 
-        <div style={{ fontSize: 7, color: 'var(--text-dim)', marginTop: 8, lineHeight: 1.45 }}>
-          The link opens Online Race with this room prefilled. The guest only enters their name.
+        <div className="invite-helper-text">
+          The invite opens Online Race directly. The guest only enters their name.
         </div>
       </div>
 

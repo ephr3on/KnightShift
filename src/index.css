@@ -3150,3 +3150,183 @@ body::after {
   font-weight: 850;
   line-height: 1.45;
 }
+
+/* Invite actions: icon-only link and QR flow. */
+.invite-icon-actions {
+  display: inline-grid;
+  grid-template-columns: repeat(3, 44px);
+  justify-content: center;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.42rem;
+}
+.invite-icon-btn {
+  width: 44px;
+  height: 44px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 15px;
+  color: var(--text);
+  background: rgba(255,255,255,0.06);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 12px 24px rgba(0,0,0,0.16);
+  font-size: 1.05rem;
+  font-weight: 950;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.invite-icon-btn:hover,
+.invite-icon-btn:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(34,211,238,0.34);
+  background: rgba(34,211,238,0.10);
+  outline: none;
+}
+.invite-icon-btn.primary,
+.invite-icon-btn.active {
+  color: #08111f;
+  border-color: rgba(251,191,36,0.55);
+  background: linear-gradient(135deg, #fde68a, #fbbf24);
+  box-shadow: 0 14px 30px rgba(251,191,36,0.22), inset 0 1px 0 rgba(255,255,255,0.38);
+}
+.invite-feedback-line {
+  min-height: 1.1rem;
+  margin-top: 0.28rem;
+  color: var(--green);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+.invite-feedback-line.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.invite-helper-text {
+  max-width: 34ch;
+  margin-top: 0.3rem;
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+
+/* Strong mobile hero centering: every object is centered by layout, not by visual guesswork. */
+@media (max-width: 760px) {
+  .menu-screen-redesigned {
+    justify-items: center;
+  }
+
+  .menu-hero.panel {
+    width: 100%;
+    max-width: min(100%, 620px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    justify-items: unset;
+    box-sizing: border-box;
+    margin-inline: auto;
+    padding-left: clamp(1rem, 5vw, 1.45rem);
+    padding-right: clamp(1rem, 5vw, 1.45rem);
+    text-align: center;
+  }
+
+  .menu-hero.panel > * {
+    box-sizing: border-box;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .menu-hero-copy {
+    width: min(100%, 520px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    justify-items: unset;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .brand-pill,
+  .menu-subtitle,
+  .menu-primary-actions,
+  .menu-preview-shell {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .menu-primary-actions {
+    width: min(100%, 360px);
+    justify-content: center;
+    justify-items: center;
+  }
+
+  .menu-primary-actions .pixel-btn {
+    width: 100%;
+  }
+
+  .menu-preview-shell {
+    width: min(100%, 300px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    justify-self: unset;
+    place-self: center;
+    overflow: hidden;
+    padding-left: clamp(0.72rem, 4vw, 0.95rem);
+    padding-right: clamp(0.72rem, 4vw, 0.95rem);
+  }
+
+  .menu-preview-shell .board-wrapper,
+  .menu-preview-shell .chess-board {
+    align-self: center;
+    justify-self: center;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 100%;
+  }
+
+  .menu-preview-meta {
+    width: 100%;
+    max-width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 0.36rem;
+    overflow: hidden;
+  }
+
+  .menu-preview-meta span {
+    min-width: 0;
+    max-width: 100%;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 420px) {
+  .menu-hero.panel {
+    padding-left: clamp(0.9rem, 4.5vw, 1.08rem);
+    padding-right: clamp(0.9rem, 4.5vw, 1.08rem);
+  }
+
+  .menu-preview-shell {
+    width: min(100%, 286px);
+  }
+
+  .invite-icon-actions {
+    grid-template-columns: repeat(3, 42px);
+    gap: 0.48rem;
+  }
+
+  .invite-icon-btn {
+    width: 42px;
+    height: 42px;
+  }
+}
