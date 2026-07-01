@@ -13,7 +13,7 @@ interface Props {
   onOnline: () => void;
 }
 
-export default function MainMenu({ onNoTurn, onCredits, onCampaign, onUnlimited, onDaily, onSaved, onOnline }: Props) {
+export default function MainMenu({ onCredits, onCampaign, onUnlimited, onDaily, onSaved, onOnline }: Props) {
   const progress = typeof window !== 'undefined' ? getCampaignProgress() : null;
   const completedCount = progress?.completedLevels.length ?? 0;
   const unlockedLimit = typeof window !== 'undefined' ? getUnlockedCampaignLevelLimit(CAMPAIGN_PUZZLES.length) : 3;
@@ -55,10 +55,6 @@ export default function MainMenu({ onNoTurn, onCredits, onCampaign, onUnlimited,
         <button type="button" className="mode-card panel" onClick={onUnlimited}>
           <span className="mode-card-icon">⚙</span>
           <strong>Custom Puzzle</strong>
-        </button>
-        <button type="button" className="mode-card panel" onClick={onNoTurn}>
-          <span className="mode-card-icon">♜</span>
-          <strong>Training Archive</strong>
         </button>
       </section>
 
