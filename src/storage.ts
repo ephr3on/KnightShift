@@ -73,3 +73,81 @@ export function cacheDailyPuzzle(date: string, mode: PuzzleMode, puzzle: Puzzle)
   const key = `${DAILY_PUZZLE_PREFIX}_${date}_${mode}`;
   localStorage.setItem(key, JSON.stringify(puzzle));
 }
+
+// ── Campaign / Level Journey ─────────────────────────────────────────────────
+
+const CAMPAIGN_PROGRESS_KEY = 'ks_campaign_progress_v1';
+
+export interface CampaignProgress {
+  completedLevels: number[];
+  bestMovesByLevel: Record<string, number>;
+  lastPlayedLevel: number | null;
+  updatedAt: string;
+}
+
+const EMPTY_CAMPAIGN_PROGRESS: CampaignProgress = {
+  completedLevels: [],
+  bestMovesByLevel: {},
+  lastPlayedLevel: null,
+  updatedAt: new Date(0).toISOString(),
+};
+
+export function getCampaignProgress(): CampaignProgress {
+  try {
+    const data = localStorage.getItem(CAMPAIGN_PROGRESS_KEY);
+    if (!data) return { ...EMPTY_CAMPAIGN_PROGRESS, bestMovesByLevel: {} };
+    const parsed = JSON.parse(data) as Partial<CampaignProgress>;
+    const completedLevels = Array.isArray(parsed.completedLevels)
+      ? Array.from(new Set(parsed.completedLevels.filter(level => Number.isInteger(level) && level > 0))).sort((a, b) => a - b)
+      : [];
+    return {
+      completedLevels,
+      bestMovesByLevel: parsed.bestMovesByLevel ?? {},
+      lastPlayedLevel: Number.isInteger(parsed.lastPlayedLevel) ? parsed.lastPlayedLevel! : null,
+      updatedAt: parsed.updatedAt ?? new Date(0).toISOString(),
+    };
+  } catch {
+    return { ...EMPTY_CAMPAIGN_PROGRESS, bestMovesByLevel: {} };
+  }
+}
+
+export function getHighestCompletedCampaignLevel(): number {
+  const progress = getCampaignProgress();
+  return progress.completedLevels.length > 0 ? Math.max(...progress.completedLevels) : 0;
+}
+
+export function getUnlockedCampaignLevelLimit(totalLevels: number): number {
+  const highestCompleted = getHighestCompletedCampaignLevel();
+  // Keep a small window open ahead of the player so future levels feel close,
+  // but late levels remain locked until the player approaches them.
+  return Math.min(totalLevels, Math.max(3, highestCompleted + 3));
+}
+
+export function isCampaignLevelUnlocked(level: number, totalLevels: number): boolean {
+  return level <= getUnlockedCampaignLevelLimit(totalLevels);
+}
+
+export function completeCampaignLevel(level: number, movesMade: number): CampaignProgress {
+  const progress = getCampaignProgress();
+  const completed = new Set(progress.completedLevels);
+  completed.add(level);
+
+  const currentBest = progress.bestMovesByLevel[String(level)];
+  const nextBestMovesByLevel = {
+    ...progress.bestMovesByLevel,
+    [String(level)]: currentBest === undefined ? movesMade : Math.min(currentBest, movesMade),
+  };
+
+  const next: CampaignProgress = {
+    completedLevels: Array.from(completed).sort((a, b) => a - b),
+    bestMovesByLevel: nextBestMovesByLevel,
+    lastPlayedLevel: level,
+    updatedAt: new Date().toISOString(),
+  };
+  localStorage.setItem(CAMPAIGN_PROGRESS_KEY, JSON.stringify(next));
+  return next;
+}
+
+export function resetCampaignProgress(): void {
+  localStorage.removeItem(CAMPAIGN_PROGRESS_KEY);
+}

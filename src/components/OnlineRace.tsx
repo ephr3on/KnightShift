@@ -1,7 +1,14 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { Puzzle, Piece, MoveRecord, Color } from '../types';
 import type { OnlineRoom } from '../multiplayer/types';
-import { getPossibleMoves, checkWin, getMoveNotation } from '../gameLogic';
+import {
+  applyMove,
+  checkWin,
+  getLegalMoves,
+  getMoveNotation,
+  undoMove,
+  type GameState,
+} from '../gameLogic';
 import Board from './Board';
 import PixelButton from './PixelButton';
 import {
@@ -40,6 +47,25 @@ function getTimestampMillis(ts: unknown): number | null {
   if (typeof obj.toMillis === 'function') return (obj.toMillis as () => number)();
   if (typeof obj.seconds === 'number') return obj.seconds * 1000;
   return null;
+}
+
+function buildOnlineGameState(
+  puzzleId: string,
+  pieces: Piece[],
+  selectedPieceId: string | null,
+  currentTurn: Color,
+  moveHistory: MoveRecord[],
+  gameOver: boolean,
+): GameState {
+  return {
+    puzzleId,
+    status: gameOver ? 'won' : 'playing',
+    pieces,
+    selectedPieceId,
+    currentTurn,
+    moveCount: moveHistory.length,
+    moveHistory,
+  };
 }
 
 export default function OnlineRace({
@@ -218,72 +244,75 @@ export default function OnlineRace({
       return;
     }
 
-    if (selected) {
-      const movingPiece = pieces.find(p => p.id === selected);
-      if (!movingPiece) { setSelected(null); return; }
-      const moves = getPossibleMoves(movingPiece, pieces, puzzle.cells);
+    if (!selected) return;
 
-      if (moves.includes(cell)) {
-        const from = movingPiece.cell;
-        setHistoryStack(s => [...s, deepClone(pieces)]);
-        const newPieces = pieces.map(p => p.id === selected ? { ...p, cell } : p);
-        setPieces(newPieces);
-        const record: MoveRecord = { pieceId: selected, color: movingPiece.color, from, to: cell };
-        const newHistory = [...history, record];
-        setHistory(newHistory);
-        setSelected(null);
-        if (withTurns) setTurn(t => t === 'white' ? 'black' : 'white');
+    const localGameState = buildOnlineGameState(
+      puzzle.id, pieces, selected, turn, history, gameOver,
+    );
+    const result = applyMove(localGameState, selected, cell, puzzle);
 
-        // Save progress so we can restore on reconnect
-        if (initialRoom.puzzleSeed) {
-          saveOnlineRaceProgress(initialRoom.roomCode, playerId, initialRoom.puzzleSeed, newHistory);
-        }
-
-        // Optimistic: board updates instantly; Firestore is async sync only
-        updateMoveCount(initialRoom.roomCode, myRole, newHistory.length, from, cell).catch(() => {});
-
-        if (checkWin(newPieces, puzzle.goalPieces) && !solvedRef.current) {
-          solvedRef.current = true;
-          setWon(true);
-          const nowMs = Date.now() - startTimeRef.current;
-          submitSolved(
-            initialRoom.roomCode,
-            myRole,
-            playerName,
-            newHistory.length,
-            nowMs,
-            playerId,
-          ).catch(() => {});
-        } else if (
-          moveLimit !== null &&
-          newHistory.length >= moveLimit &&
-          !moveLimitHitRef.current &&
-          !solvedRef.current
-        ) {
-          moveLimitHitRef.current = true;
-          setMoveLimitHit(true);
-          const nowMs = Date.now() - startTimeRef.current;
-          submitMoveLimitReached(
-            initialRoom.roomCode,
-            myRole,
-            newHistory.length,
-            nowMs,
-          ).catch(console.error);
-        }
-      } else {
-        setSelected(null);
-      }
+    if (!result.ok || !result.move) {
+      setSelected(null);
+      return;
     }
-  }, [pieces, selected, history, gameOver, withTurns, turn, puzzle, moveLimit, initialRoom.roomCode, myRole, playerId, playerName]);
+
+    const { state: nextState, move } = result;
+    setHistoryStack(s => [...s, deepClone(pieces)]);
+    setPieces(nextState.pieces);
+    setHistory(nextState.moveHistory);
+    setSelected(null);
+    setTurn(nextState.currentTurn);
+
+    // Save progress so we can restore on reconnect
+    if (initialRoom.puzzleSeed) {
+      saveOnlineRaceProgress(initialRoom.roomCode, playerId, initialRoom.puzzleSeed, nextState.moveHistory);
+    }
+
+    // Optimistic: board updates instantly; Firestore is async sync only
+    updateMoveCount(initialRoom.roomCode, myRole, nextState.moveCount, move.from, move.to).catch(() => {});
+
+    if (checkWin(nextState.pieces, puzzle.goalPieces) && !solvedRef.current) {
+      solvedRef.current = true;
+      setWon(true);
+      const nowMs = Date.now() - startTimeRef.current;
+      submitSolved(
+        initialRoom.roomCode,
+        myRole,
+        playerName,
+        nextState.moveCount,
+        nowMs,
+        playerId,
+      ).catch(() => {});
+    } else if (
+      moveLimit !== null &&
+      nextState.moveCount >= moveLimit &&
+      !moveLimitHitRef.current &&
+      !solvedRef.current
+    ) {
+      moveLimitHitRef.current = true;
+      setMoveLimitHit(true);
+      const nowMs = Date.now() - startTimeRef.current;
+      submitMoveLimitReached(
+        initialRoom.roomCode,
+        myRole,
+        nextState.moveCount,
+        nowMs,
+      ).catch(console.error);
+    }
+  }, [pieces, selected, history, gameOver, withTurns, turn, puzzle, moveLimit, initialRoom.roomCode, initialRoom.puzzleSeed, myRole, playerId, playerName]);
 
   const undo = () => {
-    if (historyStack.length === 0 || gameOver) return;
-    const prev = historyStack[historyStack.length - 1];
+    if (history.length === 0 || gameOver) return;
+    const localGameState = buildOnlineGameState(
+      puzzle.id, pieces, selected, turn, history, gameOver,
+    );
+    const result = undoMove(localGameState, puzzle);
+    if (!result.ok) return;
     setHistoryStack(s => s.slice(0, -1));
-    setPieces(prev);
-    setHistory(h => h.slice(0, -1));
+    setPieces(result.state.pieces);
+    setHistory(result.state.moveHistory);
     setSelected(null);
-    if (withTurns) setTurn(t => t === 'white' ? 'black' : 'white');
+    setTurn(result.state.currentTurn);
   };
 
   const restart = () => {
@@ -304,7 +333,9 @@ export default function OnlineRace({
   };
 
   const selectedPiece = pieces.find(p => p.id === selected) ?? null;
-  const possibleMoves = selectedPiece ? getPossibleMoves(selectedPiece, pieces, puzzle.cells) : [];
+  const possibleMoves = selectedPiece
+    ? getLegalMoves(buildOnlineGameState(puzzle.id, pieces, selected, turn, history, gameOver), selectedPiece.id, puzzle)
+    : [];
   const opponentOnline = opponentData ? isPlayerOnline(opponentData) : true;
   const opponentDisconnected =
     opponentData !== undefined && !opponentOnline && !gameOver &&
@@ -340,8 +371,8 @@ export default function OnlineRace({
                   You'll forfeit the match.<br />Your opponent will be declared the winner.
                 </div>
                 <div style={{ display: 'flex', gap: 12 }}>
-                  <PixelButton onClick={handleLeaveConfirm}>Leave</PixelButton>
-                  <PixelButton onClick={() => setShowLeaveConfirm(false)}>Stay</PixelButton>
+                  <PixelButton variant="danger" onClick={handleLeaveConfirm}>Leave</PixelButton>
+                  <PixelButton variant="primary" onClick={() => setShowLeaveConfirm(false)}>Stay</PixelButton>
                 </div>
               </>
             )}
@@ -502,8 +533,10 @@ export default function OnlineRace({
 
         <div className="race-leave-section" style={{ marginTop: 'auto', paddingTop: 16 }}>
           <PixelButton
+            variant="danger"
+            className="btn-compact"
             onClick={() => setShowLeaveConfirm(true)}
-            style={{ fontSize: 8, width: '100%' }}
+            style={{ width: '100%' }}
           >
             Leave Race
           </PixelButton>
@@ -542,11 +575,11 @@ export default function OnlineRace({
         </div>
 
         <div className="action-buttons">
-          <PixelButton onClick={undo} disabled={historyStack.length === 0 || gameOver}>
-            Undo
+          <PixelButton variant="primary" className="control-btn control-primary" onClick={undo} disabled={historyStack.length === 0 || gameOver}>
+            ↶ Undo
           </PixelButton>
-          <PixelButton onClick={restart} disabled={gameOver || history.length === 0}>
-            Restart
+          <PixelButton variant="secondary" className="control-btn" onClick={restart} disabled={gameOver || history.length === 0}>
+            ↻ Restart
           </PixelButton>
         </div>
       </div>

@@ -67,7 +67,7 @@ export default function SavedPuzzles({ onPlay, onBack }: Props) {
             placeholder="Paste puzzle code here…"
             style={{ flex: 1, minWidth: 160 }}
           />
-          <PixelButton onClick={handleImport} style={{ fontSize: 9 }}>Import</PixelButton>
+          <PixelButton variant="primary" className="btn-compact" onClick={handleImport}>Import</PixelButton>
         </div>
         {importError && (
           <div style={{ fontSize: 8, color: 'var(--red)', marginTop: 6 }}>{importError}</div>
@@ -81,8 +81,8 @@ export default function SavedPuzzles({ onPlay, onBack }: Props) {
                 {importedPuzzle.mode === 'no-turns' ? 'No Turns' : 'With Turns'} · {importedPuzzle.optimalMoves} moves
               </div>
             </div>
-            <PixelButton onClick={() => onPlay(importedPuzzle)} style={{ fontSize: 9 }}>
-              ▶ Play
+            <PixelButton variant="primary" className="btn-compact" onClick={() => onPlay(importedPuzzle)}>
+              Play
             </PixelButton>
           </div>
         )}
@@ -91,7 +91,7 @@ export default function SavedPuzzles({ onPlay, onBack }: Props) {
       {/* Saved List */}
       {puzzles.length === 0 ? (
         <div style={{ fontSize: 9, color: 'var(--text-dim)', textAlign: 'center', marginTop: 24 }}>
-          No saved puzzles yet.<br />Generate puzzles in Unlimited Mode and save them.
+          No saved puzzles yet.<br />Generate puzzles in Custom Puzzle and save them.
         </div>
       ) : (
         <div className="puzzle-cards">
@@ -112,22 +112,23 @@ export default function SavedPuzzles({ onPlay, onBack }: Props) {
                 </div>
                 <div style={{ display: 'flex', gap: 4, flexDirection: 'column', marginTop: 'auto', width: '100%' }}>
                   <PixelButton
+                    variant="primary"
                     className="card-play-btn"
                     onClick={() => onPlay(entry.puzzle)}
-                    style={{ fontSize: 9 }}
                   >
-                    ▶ Play
+                    Play
                   </PixelButton>
                   <PixelButton
+                    variant="ghost"
+                    className="btn-compact"
                     onClick={() => handleCopyCode(entry.puzzleCode, entry.id)}
-                    style={{ fontSize: 8, padding: '6px 8px' }}
                   >
                     {copiedId === entry.id ? 'Copied!' : 'Copy Code'}
                   </PixelButton>
                   <PixelButton
-                    className="danger"
+                    variant="danger"
+                    className="btn-compact"
                     onClick={() => handleDelete(entry.id)}
-                    style={{ fontSize: 8, padding: '6px 8px' }}
                   >
                     Delete
                   </PixelButton>
@@ -139,7 +140,7 @@ export default function SavedPuzzles({ onPlay, onBack }: Props) {
       )}
 
       <div className="select-bottom">
-        <PixelButton onClick={onBack}>&lt;- Back</PixelButton>
+        <PixelButton variant="ghost" onClick={onBack}>← Back</PixelButton>
       </div>
     </div>
   );

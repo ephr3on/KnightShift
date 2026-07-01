@@ -153,14 +153,14 @@ export default function UnlimitedMode({ onPlay, onBack }: Props) {
   return (
     <div className="unlimited-screen">
       <div className="unlimited-header">
-        <h1 className="select-title" style={{ marginBottom: 0 }}>Unlimited Mode</h1>
-        <PixelButton onClick={onBack} style={{ fontSize: 9 }}>&lt;- Back</PixelButton>
+        <h1 className="select-title" style={{ marginBottom: 0 }}>Custom Puzzle</h1>
+        <PixelButton variant="ghost" className="btn-compact" onClick={onBack}>← Back</PixelButton>
       </div>
 
       <div className="unlimited-layout">
         {/* Config panel */}
         <div className="panel unlimited-config">
-          <div className="panel-title">Generator Settings</div>
+          <div className="panel-title">Custom Builder</div>
 
           <div className="gen-section">
             <div className="gen-label">Mode</div>
@@ -245,11 +245,12 @@ export default function UnlimitedMode({ onPlay, onBack }: Props) {
           </div>
 
           <PixelButton
+            variant="primary"
             onClick={handleGenerate}
             disabled={phase === 'generating'}
             style={{ width: '100%', marginTop: 8 }}
           >
-            {phase === 'generating' ? 'Generating…' : 'Generate Puzzle'}
+            {phase === 'generating' ? 'Generating…' : 'Generate Custom Puzzle'}
           </PixelButton>
         </div>
 
@@ -259,7 +260,7 @@ export default function UnlimitedMode({ onPlay, onBack }: Props) {
             <div className="gen-placeholder">
               <div style={{ fontSize: 24, marginBottom: 12 }}>♞</div>
               <div style={{ fontSize: 9, color: 'var(--text-dim)', textAlign: 'center', lineHeight: 2 }}>
-                Configure your puzzle and<br />click Generate to begin.
+                Choose difficulty, board size,<br />then generate a custom puzzle.
               </div>
             </div>
           )}
@@ -289,7 +290,7 @@ export default function UnlimitedMode({ onPlay, onBack }: Props) {
               <div style={{ fontSize: 8, color: 'var(--text-dim)', lineHeight: 2, marginBottom: 16, textAlign: 'center' }}>
                 {errorMsg}
               </div>
-              <PixelButton onClick={handleGenerate}>Try Again</PixelButton>
+              <PixelButton variant="primary" onClick={handleGenerate}>Try Again</PixelButton>
             </div>
           )}
 
@@ -331,27 +332,28 @@ export default function UnlimitedMode({ onPlay, onBack }: Props) {
               </div>
 
               <div className="gen-action-btns">
-                <PixelButton onClick={() => onPlay(generatedPuzzle)} style={{ fontSize: 10 }}>
-                  ▶ Play
+                <PixelButton variant="primary" onClick={() => onPlay(generatedPuzzle)}>
+                  Play
                 </PixelButton>
-                <PixelButton onClick={() => setShowSolver(true)} style={{ fontSize: 9 }}>
-                  Show Solution
+                <PixelButton variant="secondary" onClick={() => setShowSolver(true)}>
+                  Solution
                 </PixelButton>
                 <PixelButton
                   onClick={handleSave}
                   disabled={isSaved(generatedPuzzle.id)}
-                  style={{ fontSize: 9 }}
+                  className="btn-compact"
+                  variant="ghost"
                 >
-                  {savedMsg || (isSaved(generatedPuzzle.id) ? 'Saved ✓' : 'Save Puzzle')}
+                  {savedMsg || (isSaved(generatedPuzzle.id) ? 'Saved ✓' : 'Save')}
                 </PixelButton>
-                <PixelButton onClick={handleCopyCode} style={{ fontSize: 9 }}>
-                  {copiedMsg || 'Copy Code'}
+                <PixelButton variant="ghost" className="btn-compact" onClick={handleCopyCode}>
+                  {copiedMsg || 'Code'}
                 </PixelButton>
-                <PixelButton onClick={handleCopySeed} style={{ fontSize: 9 }}>
-                  Copy Seed
+                <PixelButton variant="ghost" className="btn-compact" onClick={handleCopySeed}>
+                  Seed
                 </PixelButton>
-                <PixelButton onClick={handleGenerate} style={{ fontSize: 9 }}>
-                  ↺ Generate Another
+                <PixelButton variant="secondary" className="btn-compact" onClick={handleGenerate}>
+                  Generate Again
                 </PixelButton>
               </div>
 

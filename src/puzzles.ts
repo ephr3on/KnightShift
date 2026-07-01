@@ -20,12 +20,10 @@ import type { Puzzle } from './types';
  *   puzzles below therefore use BFS-confirmed non-swap goal positions that
  *   ARE achievable in exactly the stated number of moves.
  *
- * Note on no-turn optimal move counts:
- *   Because the board is bipartite, all swap solutions require an EVEN number
- *   of moves (minimum 32 for the easiest configuration on this board).  The
- *   displayed optimalMoves values come from the design screenshots; the real
- *   BFS counts are stored in verifiedOptimalMoves.  Console warnings are
- *   emitted at startup for any mismatch.
+ * Note on optimal move counts:
+ *   The card values are BFS-verified on the standard board used by the game.
+ *   No-turn swap puzzles can be much longer than they first look because the
+ *   board is narrow and bipartite.
  */
 const CELLS: string[] = [
   'a1', 'b1', 'c1', 'd1',
@@ -40,12 +38,10 @@ export const PUZZLES_NO_TURN: Puzzle[] = [
     name: 'The Flag',
     mode: 'no-turns',
     difficulty: 'Easy',
-    // TODO: BFS on standard board gives 32 moves, not 10.
-    //   The screenshot optimal count (10) was designed for a different board shape.
-    //   verifiedOptimalMoves reflects the actual shortest solution on this board.
-    optimalMoves: 10,
+    // BFS-confirmed shortest solution on this board.
+    optimalMoves: 32,
     verifiedOptimalMoves: 32,
-    verificationStatus: 'mismatch',
+    verificationStatus: 'confirmed',
     cells: CELLS,
     initialPieces: [
       { id: 'W1', color: 'white', cell: 'c2' },
@@ -63,10 +59,10 @@ export const PUZZLES_NO_TURN: Puzzle[] = [
     name: 'The Star',
     mode: 'no-turns',
     difficulty: 'Medium',
-    // TODO: BFS on standard board gives 32 moves, not 17.
-    optimalMoves: 17,
+    // BFS-confirmed shortest solution on this board.
+    optimalMoves: 32,
     verifiedOptimalMoves: 32,
-    verificationStatus: 'mismatch',
+    verificationStatus: 'confirmed',
     cells: CELLS,
     initialPieces: [
       { id: 'W1', color: 'white', cell: 'c3' },
@@ -84,10 +80,10 @@ export const PUZZLES_NO_TURN: Puzzle[] = [
     name: 'The Bridge',
     mode: 'no-turns',
     difficulty: 'Hard',
-    // TODO: BFS on standard board gives 36 moves, not 27.
-    optimalMoves: 27,
+    // BFS-confirmed shortest solution on this board.
+    optimalMoves: 36,
     verifiedOptimalMoves: 36,
-    verificationStatus: 'mismatch',
+    verificationStatus: 'confirmed',
     cells: CELLS,
     initialPieces: [
       { id: 'W1', color: 'white', cell: 'b2' },
@@ -105,10 +101,10 @@ export const PUZZLES_NO_TURN: Puzzle[] = [
     name: 'The Tower',
     mode: 'no-turns',
     difficulty: 'Very Hard',
-    // TODO: BFS on standard board gives 38 moves, not 37 (closest mismatch).
-    optimalMoves: 37,
+    // BFS-confirmed shortest solution on this board.
+    optimalMoves: 38,
     verifiedOptimalMoves: 38,
-    verificationStatus: 'mismatch',
+    verificationStatus: 'confirmed',
     cells: CELLS,
     initialPieces: [
       { id: 'W1', color: 'white', cell: 'b2' },
@@ -126,10 +122,10 @@ export const PUZZLES_NO_TURN: Puzzle[] = [
     name: 'The House',
     mode: 'no-turns',
     difficulty: 'Genius',
-    // TODO: BFS on standard board gives 56 moves, not 47.
-    optimalMoves: 47,
+    // BFS-confirmed shortest solution on this board.
+    optimalMoves: 56,
     verifiedOptimalMoves: 56,
-    verificationStatus: 'mismatch',
+    verificationStatus: 'confirmed',
     cells: CELLS,
     initialPieces: [
       { id: 'W1', color: 'white', cell: 'b2' },

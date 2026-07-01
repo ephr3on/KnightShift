@@ -21,8 +21,8 @@ export default function WinModal({ moves, optimalMoves, personalBest, isNewBest,
           {personalBest !== null && <>Personal Best: {personalBest}</>}
         </div>
         <div className="modal-buttons">
-          <PixelButton onClick={onRestart}>Restart</PixelButton>
-          <PixelButton onClick={onBack}>Back to Puzzles</PixelButton>
+          <PixelButton variant="primary" onClick={onRestart}>Restart</PixelButton>
+          <PixelButton variant="secondary" onClick={onBack}>Back to Puzzles</PixelButton>
         </div>
       </div>
     </div>

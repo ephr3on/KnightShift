@@ -7,21 +7,18 @@ interface Props {
 export default function Credits({ onBack }: Props) {
   return (
     <div className="credits-screen">
-      <h1 className="credits-title">Credits</h1>
-      <div className="panel" style={{ padding: 32, maxWidth: 520 }}>
+      <h1 className="credits-title">KnightShift</h1>
+      <div className="panel" style={{ padding: 32, maxWidth: 560 }}>
         <p className="credits-text">
-          The Four Knights Puzzle<br /><br />
-          Game inspired by the classic<br />
-          Four Knights chess puzzle concept.<br /><br />
-          Built as a retro pixel-art<br />
-          logic puzzle game.<br /><br />
-          The "With Turns" version of the<br />
-          original puzzle is mathematically<br />
-          impossible — verified by BFS search.<br /><br />
-          Good luck solving the rest!
+          KnightShift<br /><br />
+          A modern knight-swap logic puzzle built around clean moves, verified solutions,
+          endless generated levels, and fast online races.<br /><br />
+          The solver checks the shortest path, the hint system follows the current board,
+          and every generated level is validated before play.<br /><br />
+          Good luck shifting the board.
         </p>
       </div>
-      <PixelButton onClick={onBack}>&lt;- Main Menu</PixelButton>
+      <PixelButton variant="ghost" onClick={onBack}>← Main Menu</PixelButton>
     </div>
   );
 }

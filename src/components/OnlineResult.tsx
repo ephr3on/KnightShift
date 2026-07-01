@@ -92,10 +92,10 @@ export default function OnlineResult({
   useEffect(() => {
     if (!isHost || room.status !== 'finished') return;
     if (room.rematch?.hostWantsRematch && room.rematch?.guestWantsRematch) {
-      // Both chose "Rematch Same Puzzle" → replay with the same seed
+      // Both chose "Rematch" → replay with the same seed
       prepareRematch(initialRoom.roomCode).catch(console.error);
     } else if (room.rematch?.hostWantsNewMatch && room.rematch?.guestWantsNewMatch) {
-      // Both chose "New Match" → generate a new puzzle
+      // Both chose "New Puzzle" → generate a new puzzle
       prepareNextRound(initialRoom.roomCode).catch(console.error);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -149,7 +149,7 @@ export default function OnlineResult({
     : matchWinnerRole === 'guest' ? guestName
     : null;
 
-  // Rematch / New Match signalling state
+  // Rematch / New Puzzle signalling state
   const myRematch = isHost
     ? (room.rematch?.hostWantsRematch ?? false)
     : (room.rematch?.guestWantsRematch ?? false);
@@ -331,32 +331,52 @@ export default function OnlineResult({
         ))}
       </div>
 
-      {/* ── Puzzle stats ── */}
-      {optimalMoves !== null && (
-        <div className="panel" style={{ maxWidth: 400, margin: '0 auto 14px', padding: '12px 16px' }}>
-          <div style={{ fontSize: 7, color: 'var(--text-dim)', marginBottom: 8 }}>Puzzle Stats</div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 7, marginBottom: 4 }}>
-            <span style={{ color: 'var(--text-dim)' }}>Optimal moves</span>
-            <span style={{ color: 'var(--yellow)' }}>{optimalMoves}</span>
+      <div className="online-result-info-grid">
+        {/* ── Puzzle stats ── */}
+        {optimalMoves !== null && (
+          <div className="panel online-result-info-card">
+            <div className="online-result-info-title">Puzzle Stats</div>
+            <div className="online-result-stat-row">
+              <span>Optimal moves</span>
+              <strong>{optimalMoves}</strong>
+            </div>
+            {myData?.solved && (
+              <div className="online-result-stat-row">
+                <span>Your efficiency</span>
+                <strong className="good">
+                  {myData.moveCount} moves ({moveDiff(myData)})
+                </strong>
+              </div>
+            )}
+            {opponentData?.solved && (
+              <div className="online-result-stat-row">
+                <span>Opponent efficiency</span>
+                <strong className="muted">
+                  {opponentData.moveCount} moves ({moveDiff(opponentData)})
+                </strong>
+              </div>
+            )}
           </div>
-          {myData?.solved && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 7, marginBottom: 4 }}>
-              <span style={{ color: 'var(--text-dim)' }}>Your efficiency</span>
-              <span style={{ color: 'var(--green)' }}>
-                {myData.moveCount} moves ({moveDiff(myData)})
-              </span>
+        )}
+
+        {/* ── Match settings used ── */}
+        <div className="panel online-result-info-card">
+          <div className="online-result-info-title">Settings Used</div>
+          {[
+            { label: 'Difficulty', value: room.puzzleDifficulty ?? room.puzzleConfig.difficulty },
+            { label: 'Board',      value: room.puzzleConfig.boardSize },
+            { label: 'Mode',       value: room.puzzleConfig.mode === 'no-turns' ? 'No Turns' : 'With Turns' },
+            { label: 'Rounds',     value: rounds_setting === 1 ? '1 round' : `Best of ${rounds_setting}` },
+            { label: 'Time limit', value: formatTimeLimit(room.puzzleConfig.timeLimitSeconds) },
+            { label: 'Move limit', value: formatMoveLimit(room.puzzleConfig.moveLimitMode, room.moveLimit ?? null) },
+          ].map(({ label, value }) => (
+            <div key={label} className="online-result-stat-row">
+              <span>{label}</span>
+              <strong>{value}</strong>
             </div>
-          )}
-          {opponentData?.solved && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 7 }}>
-              <span style={{ color: 'var(--text-dim)' }}>Opponent efficiency</span>
-              <span style={{ color: 'var(--text-dim)' }}>
-                {opponentData.moveCount} moves ({moveDiff(opponentData)})
-              </span>
-            </div>
-          )}
+          ))}
         </div>
-      )}
+      </div>
 
       {/* ── Round history ── */}
       {rounds.length > 0 && (
@@ -394,77 +414,53 @@ export default function OnlineResult({
         </div>
       )}
 
-      {/* ── Match settings used ── */}
-      <div className="panel" style={{ maxWidth: 400, margin: '0 auto 14px', padding: '12px 16px' }}>
-        <div style={{ fontSize: 7, color: 'var(--text-dim)', marginBottom: 8 }}>Settings Used</div>
-        {[
-          { label: 'Difficulty', value: room.puzzleDifficulty ?? room.puzzleConfig.difficulty },
-          { label: 'Board',      value: room.puzzleConfig.boardSize },
-          { label: 'Mode',       value: room.puzzleConfig.mode === 'no-turns' ? 'No Turns' : 'With Turns' },
-          { label: 'Rounds',     value: rounds_setting === 1 ? '1 round' : `Best of ${rounds_setting}` },
-          { label: 'Time limit', value: formatTimeLimit(room.puzzleConfig.timeLimitSeconds) },
-          { label: 'Move limit', value: formatMoveLimit(room.puzzleConfig.moveLimitMode, room.moveLimit ?? null) },
-        ].map(({ label, value }) => (
-          <div key={label} style={{
-            display: 'flex', justifyContent: 'space-between', fontSize: 7, marginBottom: 5,
-          }}>
-            <span style={{ color: 'var(--text-dim)', minWidth: 80 }}>{label}</span>
-            <span style={{ color: '#fff' }}>{value}</span>
-          </div>
-        ))}
-      </div>
-
       {/* ── Actions ── */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+      <div className="online-result-actions">
 
-        {/* Rematch Same Puzzle */}
+        {/* Rematch */}
         <PixelButton
           onClick={handleRematch}
           disabled={preparing}
-          style={{
-            minWidth: 220,
-            background: myRematch && !preparing ? 'var(--green)' : undefined,
-          }}
+          variant={myRematch && !preparing ? "success" : "primary"}
+          className="online-result-action-btn online-result-main-action"
         >
-          {preparing ? 'Preparing…' : 'Rematch Same Puzzle'}
+          {preparing ? 'Preparing…' : 'Rematch'}
         </PixelButton>
 
-        {/* New Match */}
+        {/* New Puzzle */}
         <PixelButton
           onClick={handleNewMatch}
           disabled={preparing}
-          style={{
-            minWidth: 220,
-            background: myNewMatch && !preparing ? 'var(--green)' : undefined,
-          }}
+          variant={myNewMatch && !preparing ? "success" : "secondary"}
+          className="online-result-action-btn online-result-main-action"
         >
-          {preparing ? 'Preparing…' : 'New Match'}
+          {preparing ? 'Preparing…' : 'New Puzzle'}
         </PixelButton>
 
         {/* Status messages — shown when either player has signalled */}
         {!preparing && (myRematch || myNewMatch || opponentRematch || opponentNewMatch) && (() => {
           let msg = '';
           if (myRematch && opponentRematch)      msg = 'Both chose Rematch — preparing…';
-          else if (myNewMatch && opponentNewMatch) msg = 'Both chose New Match — preparing…';
-          else if (myRematch && opponentNewMatch)  msg = 'You chose Rematch — opponent chose New Match';
-          else if (myNewMatch && opponentRematch)  msg = 'You chose New Match — opponent chose Rematch';
-          else if (myRematch)                      msg = 'You chose Rematch Same Puzzle — waiting for opponent…';
-          else if (myNewMatch)                     msg = 'You chose New Match — waiting for opponent…';
+          else if (myNewMatch && opponentNewMatch) msg = 'Both chose New Puzzle — preparing…';
+          else if (myRematch && opponentNewMatch)  msg = 'You chose Rematch — opponent chose New Puzzle';
+          else if (myNewMatch && opponentRematch)  msg = 'You chose New Puzzle — opponent chose Rematch';
+          else if (myRematch)                      msg = 'You chose Rematch — waiting for opponent…';
+          else if (myNewMatch)                     msg = 'You chose New Puzzle — waiting for opponent…';
           else if (opponentRematch)                msg = '⚡ Opponent wants to rematch same puzzle!';
           else if (opponentNewMatch)               msg = '⚡ Opponent wants a new match!';
           return msg ? (
-            <div style={{ fontSize: 7, color: 'var(--yellow)', textAlign: 'center', maxWidth: 280 }}>
+            <div className="online-result-choice-note">
               {msg}
             </div>
           ) : null;
         })()}
 
-        <PixelButton onClick={handleBackToLobby} style={{ minWidth: 220 }}>
-          Back to Lobby
+        <PixelButton variant="ghost" onClick={handleBackToLobby} className="online-result-action-btn online-result-sub-action">
+          Lobby
         </PixelButton>
 
-        <PixelButton onClick={handleLeave} style={{ minWidth: 220 }}>
-          &lt;- Leave Room
+        <PixelButton variant="danger" onClick={handleLeave} className="online-result-action-btn online-result-sub-action">
+          Leave
         </PixelButton>
       </div>
     </div>

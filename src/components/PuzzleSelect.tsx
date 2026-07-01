@@ -39,14 +39,16 @@ export default function PuzzleSelect({ onPlay, onBack, initialMode = 'no-turns' 
 
       <div style={{ display: 'flex', gap: 12, marginBottom: 28 }}>
         <PixelButton
+          variant={mode === 'no-turns' ? 'primary' : 'ghost'}
+          className="segmented-control-btn"
           onClick={() => setMode('no-turns')}
-          style={{ opacity: mode === 'no-turns' ? 1 : 0.6 }}
         >
           No Turn
         </PixelButton>
         <PixelButton
+          variant={mode === 'with-turns' ? 'primary' : 'ghost'}
+          className="segmented-control-btn"
           onClick={() => setMode('with-turns')}
-          style={{ opacity: mode === 'with-turns' ? 1 : 0.6 }}
         >
           With Turn
         </PixelButton>
@@ -55,7 +57,8 @@ export default function PuzzleSelect({ onPlay, onBack, initialMode = 'no-turns' 
       <div className="puzzle-cards">
         {puzzles.map(puzzle => {
           const best = getBest(puzzle.id);
-          const displayMoves = puzzle.optimalMoves > 0 ? puzzle.optimalMoves : '?';
+          const verifiedMoves = puzzle.verifiedOptimalMoves ?? puzzle.optimalMoves;
+          const displayMoves = verifiedMoves > 0 ? verifiedMoves : '?';
           return (
             <div key={puzzle.id} className="panel puzzle-card">
               <div className="card-name">{puzzle.name}</div>
@@ -79,6 +82,7 @@ export default function PuzzleSelect({ onPlay, onBack, initialMode = 'no-turns' 
               </div>
 
               <PixelButton
+                variant="primary"
                 className="card-play-btn"
                 onClick={() => onPlay(puzzle)}
               >
@@ -90,7 +94,7 @@ export default function PuzzleSelect({ onPlay, onBack, initialMode = 'no-turns' 
       </div>
 
       <div className="select-bottom">
-        <PixelButton onClick={onBack}>&lt;- Back</PixelButton>
+        <PixelButton variant="ghost" onClick={onBack}>← Back</PixelButton>
       </div>
     </div>
   );

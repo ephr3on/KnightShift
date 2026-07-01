@@ -379,7 +379,7 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
           <div style={{ fontSize: 8, color: 'var(--text-dim)', marginBottom: 24 }}>
             The host has closed this room.
           </div>
-          <PixelButton onClick={onLeave}>Back to Menu</PixelButton>
+          <PixelButton variant="ghost" onClick={onLeave}>Back to Menu</PixelButton>
         </div>
       </div>
     );
@@ -413,7 +413,7 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
         </div>
         {error && <div className="online-error" style={{ marginTop: 16 }}>{error}</div>}
         <div style={{ position: 'fixed', bottom: 20, left: 20 }}>
-          <PixelButton onClick={handleLeave} style={{ fontSize: 9 }}>&lt;- Leave</PixelButton>
+          <PixelButton variant="danger" className="btn-compact" onClick={handleLeave}>Leave</PixelButton>
         </div>
       </div>
     );
@@ -435,7 +435,7 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
         <div style={{ fontSize: 8, color: 'var(--text-dim)', marginBottom: 8 }}>Room Code</div>
         <div className="online-code-display">{roomCode}</div>
         <div style={{ marginTop: 12 }}>
-          <PixelButton onClick={handleCopyCode} style={{ fontSize: 8 }}>
+          <PixelButton variant="secondary" className="btn-compact" onClick={handleCopyCode}>
             {copied ? '✓ Copied!' : 'Copy Code'}
           </PixelButton>
         </div>
@@ -754,9 +754,9 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
                 </div>
               )}
               <PixelButton
+                variant="primary"
                 onClick={handleStartMatch}
                 disabled={!canStartMatch}
-                style={canStartMatch ? { background: '#166534', borderColor: '#14532d' } : undefined}
               >
                 {settingsUpdating ? 'Updating…' : 'Start Match'}
               </PixelButton>
@@ -772,7 +772,7 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
       {error && <div className="online-error" style={{ marginTop: 16 }}>{error}</div>}
 
       <div style={{ position: 'fixed', bottom: 20, left: 20 }}>
-        <PixelButton onClick={handleLeave} style={{ fontSize: 9 }}>&lt;- Leave</PixelButton>
+        <PixelButton variant="danger" className="btn-compact" onClick={handleLeave}>Leave</PixelButton>
       </div>
       <div style={{ position: 'fixed', bottom: 20, right: 20 }}>
         <div style={{ fontSize: 7, color: 'var(--text-dim)' }}>{playerName}</div>

@@ -1,14 +1,20 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { Puzzle, Piece, MoveRecord, Color } from '../types';
+import type { Puzzle, MoveRecord } from '../types';
 import {
-  getPossibleMoves,
-  checkWin,
+  applyMove,
+  createInitialGameState,
+  getHint as getCoreHint,
+  getLegalMoves,
   getMoveNotation,
+  selectPiece,
+  undoMove,
+  type GameState,
 } from '../gameLogic';
 import Board from './Board';
 import PixelButton from './PixelButton';
 import WinModal from './WinModal';
 import SolverModal from './SolverModal';
+import { completeCampaignLevel } from '../storage';
 
 interface Props {
   puzzle: Puzzle;
@@ -16,9 +22,7 @@ interface Props {
   onBackToMenu: () => void;
 }
 
-function deepClone(pieces: Piece[]): Piece[] {
-  return pieces.map(p => ({ ...p }));
-}
+type CoreHint = ReturnType<typeof getCoreHint>;
 
 function saveBest(id: string, moves: number) {
   const current = localStorage.getItem(`best_${id}`);
@@ -35,19 +39,30 @@ function getBest(id: string): number | null {
 }
 
 export default function GameScreen({ puzzle, onBack, onBackToMenu }: Props) {
-  const [pieces, setPieces] = useState<Piece[]>(deepClone(puzzle.initialPieces));
-  const [selected, setSelected] = useState<string | null>(null); // pieceId
-  const [history, setHistory] = useState<MoveRecord[]>([]);
-  const [historyStack, setHistoryStack] = useState<Piece[][]>([]);
-  const [turn, setTurn] = useState<Color>('white');
-  const [won, setWon] = useState(false);
+  const [gameState, setGameState] = useState<GameState>(() => createInitialGameState(puzzle));
   const [shakeId, setShakeId] = useState<string | null>(null);
   const [isNewBest, setIsNewBest] = useState(false);
   const [personalBest, setPersonalBest] = useState<number | null>(getBest(puzzle.id));
   const [showSolver, setShowSolver] = useState(false);
+  const [showMoreActions, setShowMoreActions] = useState(false);
+  const [hint, setHint] = useState<CoreHint | null>(null);
   const historyRef = useRef<HTMLDivElement>(null);
 
   const withTurns = puzzle.mode === 'with-turns';
+  const pieces = gameState.pieces;
+  const selected = gameState.selectedPieceId;
+  const history: MoveRecord[] = gameState.moveHistory;
+  const turn = gameState.currentTurn;
+  const won = gameState.status === 'won';
+
+  useEffect(() => {
+    setGameState(createInitialGameState(puzzle));
+    setHint(null);
+    setIsNewBest(false);
+    setPersonalBest(getBest(puzzle.id));
+    setShowMoreActions(false);
+    setShowSolver(false);
+  }, [puzzle]);
 
   // Auto-scroll history
   useEffect(() => {
@@ -56,94 +71,80 @@ export default function GameScreen({ puzzle, onBack, onBackToMenu }: Props) {
     }
   }, [history]);
 
-  const selectedPiece = pieces.find(p => p.id === selected) ?? null;
-  const possibleMoves = selectedPiece
-    ? getPossibleMoves(selectedPiece, pieces, puzzle.cells)
-    : [];
+  const possibleMoves = selected ? getLegalMoves(gameState, selected, puzzle) : [];
 
   const triggerShake = (id: string) => {
     setShakeId(id);
     setTimeout(() => setShakeId(null), 400);
   };
 
-  const handleCellClick = useCallback((cell: string) => {
+  const requestHint = () => {
     if (won) return;
+    setHint(getCoreHint(gameState, puzzle));
+  };
 
-    const pieceOnCell = pieces.find(p => p.cell === cell);
+  const handleCellClick = useCallback((cell: string) => {
+    if (gameState.status === 'won') return;
+
+    const pieceOnCell = gameState.pieces.find(p => p.cell === cell);
 
     // Clicking a piece
     if (pieceOnCell) {
       // Turn enforcement
-      if (withTurns && pieceOnCell.color !== turn) {
+      if (withTurns && pieceOnCell.color !== gameState.currentTurn) {
         triggerShake(pieceOnCell.id);
         return;
       }
-      // Toggle selection
-      if (selected === pieceOnCell.id) {
-        setSelected(null);
-      } else {
-        setSelected(pieceOnCell.id);
-      }
+
+      setGameState(state => selectPiece(
+        state,
+        state.selectedPieceId === pieceOnCell.id ? null : pieceOnCell.id,
+      ));
       return;
     }
 
     // Clicking an empty cell — try to move selected piece there
-    if (selected && possibleMoves.includes(cell)) {
-      const piece = pieces.find(p => p.id === selected)!;
-      const from = piece.cell;
+    if (gameState.selectedPieceId) {
+      const result = applyMove(gameState, gameState.selectedPieceId, cell, puzzle);
+      if (result.ok) {
+        setGameState(result.state);
+        setHint(null);
 
-      // Save snapshot for undo
-      setHistoryStack(s => [...s, deepClone(pieces)]);
-
-      const newPieces = pieces.map(p =>
-        p.id === selected ? { ...p, cell } : p
-      );
-      setPieces(newPieces);
-      setHistory(h => [...h, { pieceId: selected, color: piece.color, from, to: cell }]);
-      setSelected(null);
-
-      if (withTurns) {
-        setTurn(t => (t === 'white' ? 'black' : 'white'));
+        if (result.won) {
+          const nb = saveBest(puzzle.id, result.state.moveCount);
+          if (puzzle.campaignLevel) {
+            completeCampaignLevel(puzzle.campaignLevel, result.state.moveCount);
+          }
+          setIsNewBest(nb);
+          setPersonalBest(getBest(puzzle.id));
+        }
+      } else {
+        setGameState(state => selectPiece(state, null));
       }
-
-      if (checkWin(newPieces, puzzle.goalPieces)) {
-        const moves = history.length + 1;
-        const nb = saveBest(puzzle.id, moves);
-        setIsNewBest(nb);
-        setPersonalBest(getBest(puzzle.id));
-        setWon(true);
-      }
-    } else if (selected) {
-      // Clicked somewhere invalid — deselect
-      setSelected(null);
     }
-  }, [pieces, selected, possibleMoves, history, won, withTurns, turn, puzzle]);
+  }, [gameState, withTurns, puzzle]);
 
   const undo = () => {
-    if (historyStack.length === 0) return;
-    const prev = historyStack[historyStack.length - 1];
-    setHistoryStack(s => s.slice(0, -1));
-    setPieces(prev);
-    setHistory(h => h.slice(0, -1));
-    setSelected(null);
-    if (withTurns) {
-      setTurn(t => (t === 'white' ? 'black' : 'white'));
-    }
+    const result = undoMove(gameState, puzzle);
+    if (!result.ok) return;
+    setGameState(result.state);
+    setHint(null);
+    setIsNewBest(false);
   };
 
   const restart = () => {
-    setPieces(deepClone(puzzle.initialPieces));
-    setSelected(null);
-    setHistory([]);
-    setHistoryStack([]);
-    setTurn('white');
-    setWon(false);
+    setGameState(createInitialGameState(puzzle));
     setShakeId(null);
+    setHint(null);
+    setShowMoreActions(false);
+    setIsNewBest(false);
   };
 
 
   const modeLabel = puzzle.mode === 'no-turns' ? 'No Turns' : 'With Turns';
   const titleLabel = `${puzzle.name} (${modeLabel})`;
+  const hintFrom = hint?.ok ? hint.from : null;
+  const hintTo = hint?.ok ? hint.to : null;
 
   return (
     <div className="game-screen solo-game-screen">
@@ -178,20 +179,46 @@ export default function GameScreen({ puzzle, onBack, onBackToMenu }: Props) {
 
       {/* Board */}
       <div className="board-area">
-        <div
-          className={shakeId ? 'shake' : ''}
-          key={shakeId}
-        >
-          <Board
-            cells={puzzle.cells}
-            pieces={pieces}
-            selectedPieceId={selected}
-            possibleMoves={possibleMoves}
-            goalPieces={puzzle.goalPieces}
-            onCellClick={handleCellClick}
-            size="normal"
-            showCoords
-          />
+        <div className="play-board-stack">
+          <button
+            type="button"
+            className="hint-fab"
+            onClick={requestHint}
+            disabled={won}
+            aria-label="Show best next move hint"
+          >
+            💡 Hint
+          </button>
+
+          {hint && (
+            <div
+              className={`hint-toast ${hint.ok ? 'is-ready' : 'is-error'}`}
+              title={hint.message}
+            >
+              <span>{hint.message}</span>
+              {hint.ok && hint.remainingMoves !== undefined && (
+                <strong>{hint.remainingMoves} left</strong>
+              )}
+            </div>
+          )}
+
+          <div
+            className={shakeId ? 'shake' : ''}
+            key={shakeId}
+          >
+            <Board
+              cells={puzzle.cells}
+              pieces={pieces}
+              selectedPieceId={selected}
+              possibleMoves={possibleMoves}
+              goalPieces={puzzle.goalPieces}
+              hintFromCell={hintFrom}
+              hintToCell={hintTo}
+              onCellClick={handleCellClick}
+              size="normal"
+              showCoords
+            />
+          </div>
         </div>
       </div>
 
@@ -218,18 +245,29 @@ export default function GameScreen({ puzzle, onBack, onBackToMenu }: Props) {
 
 
         {/* Action buttons */}
-        <div className="action-buttons">
-          <PixelButton onClick={undo} disabled={historyStack.length === 0}>
-            Undo Move
+        <div className="action-buttons action-dock has-more-actions">
+          <PixelButton variant="primary" className="control-btn control-primary" onClick={undo} disabled={history.length === 0}>
+            ↶ Undo
           </PixelButton>
-          <PixelButton onClick={restart}>Restart Puzzle</PixelButton>
-          <PixelButton onClick={onBackToMenu}>&lt;- Main Menu</PixelButton>
-          <PixelButton
-            onClick={() => setShowSolver(true)}
-            style={{ fontSize: 8 }}
+          <PixelButton variant="secondary" className="control-btn" onClick={restart}>↻ Restart</PixelButton>
+          <button
+            type="button"
+            className={`action-more-toggle ${showMoreActions ? 'active' : ''}`}
+            onClick={() => setShowMoreActions(v => !v)}
+            aria-label="More actions"
           >
-            Analyze / Solve
-          </PixelButton>
+            ⋯
+          </button>
+          {showMoreActions && (
+            <div className="action-overflow-popover">
+              <button type="button" onClick={() => { setShowSolver(true); setShowMoreActions(false); }}>
+                Analyze solution
+              </button>
+              <button type="button" onClick={onBackToMenu}>
+                Main menu
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

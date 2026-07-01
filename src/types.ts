@@ -21,6 +21,9 @@ export interface Puzzle {
   initialPieces: Piece[];
   goalPieces: GoalGroup[];
   locked?: boolean;
+  campaignLevel?: number;
+  campaignZone?: string;
+  campaignXp?: number;
   /** BFS-verified actual optimal moves (may differ from optimalMoves if screenshots were ambiguous). */
   verifiedOptimalMoves?: number | null;
   verificationStatus?: 'confirmed' | 'mismatch' | 'needs-check';
@@ -36,6 +39,7 @@ export interface MoveRecord {
 export type Screen =
   | 'menu'
   | 'puzzle-select'
+  | 'campaign'
   | 'game'
   | 'credits'
   | 'unlimited'

@@ -129,7 +129,7 @@ export default function DailyPuzzle({ onPlay, onBack }: Props) {
               {slot.status === 'error' && (
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: 8, color: 'var(--red)', marginBottom: 8 }}>Generation failed</div>
-                  <PixelButton onClick={() => startGeneration(slot.mode)} style={{ fontSize: 8 }}>
+                  <PixelButton variant="secondary" className="btn-compact" onClick={() => startGeneration(slot.mode)}>
                     Retry
                   </PixelButton>
                 </div>
@@ -151,8 +151,8 @@ export default function DailyPuzzle({ onPlay, onBack }: Props) {
                       </span></>
                     )}
                   </div>
-                  <PixelButton onClick={() => onPlay(slot.puzzle!)} style={{ fontSize: 9, width: '100%' }}>
-                    {result?.completed ? '▶ Play Again' : '▶ Play'}
+                  <PixelButton variant="primary" onClick={() => onPlay(slot.puzzle!)} style={{ width: '100%' }}>
+                    {result?.completed ? 'Play Again' : 'Play'}
                   </PixelButton>
                 </>
               )}
@@ -162,7 +162,7 @@ export default function DailyPuzzle({ onPlay, onBack }: Props) {
       </div>
 
       <div className="select-bottom">
-        <PixelButton onClick={onBack}>&lt;- Back</PixelButton>
+        <PixelButton variant="ghost" onClick={onBack}>← Back</PixelButton>
       </div>
     </div>
   );

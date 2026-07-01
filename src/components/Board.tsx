@@ -13,6 +13,8 @@ interface Props {
   size?: 'normal' | 'medium' | 'small' | 'tiny';
   showCoords?: boolean;
   maxWidth?: number;
+  hintFromCell?: string | null;
+  hintToCell?: string | null;
 }
 
 export default function Board({
@@ -24,6 +26,8 @@ export default function Board({
   onCellClick,
   size = 'normal' as 'normal' | 'medium' | 'small' | 'tiny',
   showCoords = false,
+  hintFromCell = null,
+  hintToCell = null,
   // maxWidth,
 }: Props) {
   if (cells.length === 0) return null;
@@ -106,6 +110,8 @@ export default function Board({
             const isPossible = possibleSet.has(cell);
             const isGoalW = goalWhiteCells.has(cell);
             const isGoalB = goalBlackCells.has(cell);
+            const isHintFrom = hintFromCell === cell;
+            const isHintTo = hintToCell === cell;
 
             const classes = [
               'chess-cell',
@@ -115,6 +121,8 @@ export default function Board({
               isPossible ? 'possible' : '',
               isGoalW ? 'goal-w' : '',
               isGoalB ? 'goal-b' : '',
+              isHintFrom ? 'hint-from' : '',
+              isHintTo ? 'hint-to' : '',
             ].filter(Boolean).join(' ');
 
             return (

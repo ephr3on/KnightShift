@@ -65,7 +65,7 @@ export default function OnlineMenu({ onRoomReady, onBack }: Props) {
         <div className="panel online-menu-card">
           <div className="panel-title">Create Room</div>
           <p className="online-card-desc">Start a new private room and share the code with a friend.</p>
-          <PixelButton onClick={handleCreate} disabled={loading !== null}>
+          <PixelButton variant="primary" onClick={handleCreate} disabled={loading !== null}>
             {loading === 'create' ? 'Creating…' : 'Create Room'}
           </PixelButton>
         </div>
@@ -81,7 +81,7 @@ export default function OnlineMenu({ onRoomReady, onBack }: Props) {
             maxLength={5}
             onKeyDown={e => { if (e.key === 'Enter') handleJoin(); }}
           />
-          <PixelButton onClick={handleJoin} disabled={loading !== null || !joinCode.trim()}>
+          <PixelButton variant="primary" onClick={handleJoin} disabled={loading !== null || !joinCode.trim()}>
             {loading === 'join' ? 'Joining…' : 'Join Room'}
           </PixelButton>
         </div>
@@ -90,7 +90,7 @@ export default function OnlineMenu({ onRoomReady, onBack }: Props) {
       {error && <div className="online-error">{error}</div>}
 
       <div className="select-bottom">
-        <PixelButton onClick={onBack}>&lt;- Back</PixelButton>
+        <PixelButton variant="ghost" onClick={onBack}>← Back</PixelButton>
       </div>
     </div>
   );

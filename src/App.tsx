@@ -8,6 +8,7 @@ import MainMenu from './components/MainMenu';
 import PuzzleSelect from './components/PuzzleSelect';
 import GameScreen from './components/GameScreen';
 import Credits from './components/Credits';
+import CampaignMode from './components/CampaignMode';
 import UnlimitedMode from './components/UnlimitedMode';
 import DailyPuzzle from './components/DailyPuzzle';
 import SavedPuzzles from './components/SavedPuzzles';
@@ -119,12 +120,18 @@ export default function App() {
       {screen === 'menu' && (
         <MainMenu
           onNoTurn={() => openPuzzles('no-turns')}
-          onWithTurn={() => openPuzzles('with-turns')}
           onCredits={() => setScreen('credits')}
+          onCampaign={() => setScreen('campaign')}
           onUnlimited={() => setScreen('unlimited')}
           onDaily={() => setScreen('daily')}
           onSaved={() => setScreen('saved-puzzles')}
           onOnline={() => setScreen('online-menu')}
+        />
+      )}
+      {screen === 'campaign' && (
+        <CampaignMode
+          onPlay={p => goToGame(p, 'campaign')}
+          onBack={() => setScreen('menu')}
         />
       )}
       {screen === 'puzzle-select' && (
