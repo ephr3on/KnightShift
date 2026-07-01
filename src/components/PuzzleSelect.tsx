@@ -3,6 +3,7 @@ import type { Puzzle, PuzzleMode } from '../types';
 import { PUZZLES_NO_TURN, PUZZLES_WITH_TURN } from '../puzzles';
 import Board from './Board';
 import PixelButton from './PixelButton';
+import ScreenHeader from './ScreenHeader';
 
 interface Props {
   onPlay: (puzzle: Puzzle) => void;
@@ -33,9 +34,12 @@ export default function PuzzleSelect({ onPlay, onBack, initialMode = 'no-turns' 
 
   return (
     <div className="select-screen">
-      <h1 className="select-title">
-        {mode === 'no-turns' ? 'Puzzles (No Turn)' : 'Puzzles (With Turn)'}
-      </h1>
+      <ScreenHeader
+        title={mode === 'no-turns' ? 'Training Archive' : 'Turn Rules'}
+        subtitle={mode === 'no-turns' ? 'Classic verified boards without turn restrictions.' : 'Verified boards with alternating turns.'}
+        onBack={onBack}
+        backLabel="Menu"
+      />
 
       <div style={{ display: 'flex', gap: 12, marginBottom: 28 }}>
         <PixelButton
@@ -93,9 +97,6 @@ export default function PuzzleSelect({ onPlay, onBack, initialMode = 'no-turns' 
         })}
       </div>
 
-      <div className="select-bottom">
-        <PixelButton variant="ghost" onClick={onBack}>← Back</PixelButton>
-      </div>
     </div>
   );
 }

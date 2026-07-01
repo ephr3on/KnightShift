@@ -1,4 +1,4 @@
-import PixelButton from './PixelButton';
+import ScreenHeader from './ScreenHeader';
 
 interface Props {
   onBack: () => void;
@@ -7,7 +7,7 @@ interface Props {
 export default function Credits({ onBack }: Props) {
   return (
     <div className="credits-screen">
-      <h1 className="credits-title">KnightShift</h1>
+      <ScreenHeader title="Credits" subtitle="KnightShift · design, logic, and online race system" onBack={onBack} backLabel="Menu" />
       <div className="panel" style={{ padding: 32, maxWidth: 560 }}>
         <p className="credits-text">
           KnightShift<br /><br />
@@ -18,7 +18,6 @@ export default function Credits({ onBack }: Props) {
           Good luck shifting the board.
         </p>
       </div>
-      <PixelButton variant="ghost" onClick={onBack}>← Main Menu</PixelButton>
     </div>
   );
 }

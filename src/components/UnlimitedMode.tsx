@@ -12,6 +12,7 @@ import { savePuzzle, isSaved } from '../storage';
 import Board from './Board';
 import PixelButton from './PixelButton';
 import SolverModal from './SolverModal';
+import ScreenHeader from './ScreenHeader';
 
 interface Props {
   onPlay: (puzzle: Puzzle) => void;
@@ -152,10 +153,12 @@ export default function UnlimitedMode({ onPlay, onBack }: Props) {
 
   return (
     <div className="unlimited-screen">
-      <div className="unlimited-header">
-        <h1 className="select-title" style={{ marginBottom: 0 }}>Custom Puzzle</h1>
-        <PixelButton variant="ghost" className="btn-compact" onClick={onBack}>← Back</PixelButton>
-      </div>
+      <ScreenHeader
+        title="Custom Puzzle"
+        subtitle="Build a one-off board by difficulty, size, mode, and seed."
+        onBack={onBack}
+        backLabel="Menu"
+      />
 
       <div className="unlimited-layout">
         {/* Config panel */}

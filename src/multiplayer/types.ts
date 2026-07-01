@@ -68,6 +68,15 @@ export interface RematchState {
 }
 
 // ---------------------------------------------------------------------------
+// No-winner / draw coordination during an active online race
+// ---------------------------------------------------------------------------
+
+export interface NoWinnerState {
+  hostRequested: boolean;
+  guestRequested: boolean;
+}
+
+// ---------------------------------------------------------------------------
 // Embedded player data — stored directly in the room document.
 // No separate subcollection; one Firestore listener covers everything.
 // ---------------------------------------------------------------------------
@@ -124,7 +133,7 @@ export interface RoundResult {
   winnerUid: string;   // '' for draw
   winnerName: string;
   winnerRole: 'host' | 'guest' | 'draw';
-  resultReason: 'solved' | 'forfeit' | 'opponent_left' | 'room_closed' | 'time_limit' | 'move_limit';
+  resultReason: 'solved' | 'forfeit' | 'opponent_left' | 'room_closed' | 'time_limit' | 'move_limit' | 'no_winner';
   hostStats: PlayerRoundStats;
   guestStats: PlayerRoundStats;
   optimalMoves: number | null;
@@ -185,10 +194,13 @@ export interface OnlineRoom {
   // Result (set when status → 'finished')
   winnerId?: string;     // '' = draw
   winnerName?: string;
-  resultReason?: 'solved' | 'forfeit' | 'opponent_left' | 'room_closed' | 'time_limit' | 'move_limit';
+  resultReason?: 'solved' | 'forfeit' | 'opponent_left' | 'room_closed' | 'time_limit' | 'move_limit' | 'no_winner';
 
   // Session state — persists across rematch rounds
   currentRound: number;
   score: RoomScore;
   rematch: RematchState;
+
+  // Active-race agreement: if both players request it, the round ends as no-winner draw.
+  noWinner?: NoWinnerState;
 }

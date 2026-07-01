@@ -10,7 +10,7 @@ import {
   prepareRematch,
   prepareNextRound,
   startPresenceHeartbeat,
-  markPlayerLeftRoom,
+  leaveOnlineRoom,
   markPlayerDisconnected,
   isPlayerOnline,
 } from '../multiplayer/onlineRoomService';
@@ -164,9 +164,13 @@ export default function OnlineResult({
     ? (room.rematch?.guestWantsNewMatch ?? false)
     : (room.rematch?.hostWantsNewMatch ?? false);
   const preparing = room.status === 'generating' || room.status === 'countdown';
+  const opponentLeftRoom = opponentData?.leftRoom ?? false;
+  const hostLeftRoom = room.players.host.leftRoom ?? false;
+  const canContinueRoom = !opponentLeftRoom && !hostLeftRoom;
 
   const headline =
-    isDraw && resultReason === 'time_limit'  ? 'Time limit — Draw!'
+    isDraw && resultReason === 'no_winner'  ? 'No winner — round drawn'
+    : isDraw && resultReason === 'time_limit'  ? 'Time limit — Draw!'
     : isDraw && resultReason === 'move_limit' ? 'Move limit — Draw!'
     : isDraw                                  ? 'Draw!'
     : resultReason === 'solved'               ? `${winnerName} solved it first!`
@@ -174,7 +178,8 @@ export default function OnlineResult({
     : resultReason === 'opponent_left'        ? `${winnerName} wins — opponent left`
     : resultReason === 'room_closed'          ? 'The room was closed'
     : resultReason === 'time_limit'           ? `Time limit — ${winnerName} wins!`
-    : resultReason === 'move_limit'           ? `Move limit — ${winnerName} wins by fewer moves!`
+    : resultReason === 'move_limit'           ? `Move limit — ${winnerName} wins!`
+    : resultReason === 'no_winner'            ? 'No winner — round drawn'
     : room.winnerId ? `${winnerName} wins!`
     : 'Round ended';
 
@@ -189,11 +194,18 @@ export default function OnlineResult({
   };
 
   const handleBackToLobby = async () => {
+    if (!canContinueRoom) {
+      await leaveOnlineRoom(initialRoom.roomCode, myRole).catch(console.error);
+      clearOnlineSession();
+      clearOnlineRaceProgress();
+      onExit();
+      return;
+    }
     await returnToLobby(initialRoom.roomCode).catch(console.error);
   };
 
   const handleLeave = async () => {
-    await markPlayerLeftRoom(initialRoom.roomCode, myRole).catch(console.error);
+    await leaveOnlineRoom(initialRoom.roomCode, myRole).catch(console.error);
     clearOnlineSession();
     clearOnlineRaceProgress();
     onExit();
@@ -204,12 +216,14 @@ export default function OnlineResult({
   const playerStatus = (p: OnlinePlayerData | undefined) => {
     if (!p) return '—';
     if (p.solved) return 'Solved';
+    if (resultReason === 'no_winner') return 'No winner';
     if (p.moveLimitReached) return 'Move limit';
     return 'Not solved';
   };
   const playerStatusColor = (p: OnlinePlayerData | undefined) => {
     if (!p) return 'var(--text-dim)';
     if (p.solved) return 'var(--green)';
+    if (resultReason === 'no_winner') return 'var(--text-dim)';
     if (p.moveLimitReached) return 'var(--yellow)';
     return 'var(--red)';
   };
@@ -226,14 +240,18 @@ export default function OnlineResult({
       <ScreenHeader
         title="Round Result"
         subtitle={rounds_setting > 1 ? `Round ${currentRound} of ${rounds_setting} · ${headline}` : headline}
+        onBack={handleBackToLobby}
+        backLabel={canContinueRoom ? "Lobby" : "Menu"}
         right={<PixelButton variant="danger" className="screen-header-btn" onClick={handleLeave}>Leave</PixelButton>}
       />
 
       {/* ── Title ── */}
       <div className="online-result-header">
         <div className="online-result-title">
-          {isDraw
-            ? 'Draw!'
+          {isDraw && resultReason === 'no_winner'
+            ? 'No Winner'
+            : isDraw
+              ? 'Draw!'
             : localWon ? 'You Win!'
             : opponentWon ? 'You Lose'
             : 'Round Complete'}
@@ -241,9 +259,18 @@ export default function OnlineResult({
         <div className="online-result-subtitle">
           {rounds_setting > 1 ? `Round ${currentRound} of ${rounds_setting} — ` : ''}{headline}
         </div>
-        {(resultReason === 'time_limit' || resultReason === 'move_limit') && (
+        {(resultReason === 'time_limit' || resultReason === 'move_limit' || resultReason === 'no_winner') && (
           <div style={{ fontSize: 7, color: 'var(--yellow)', marginTop: 4 }}>
-            {resultReason === 'time_limit' ? 'Time limit reached.' : 'Move limit reached.'}
+            {resultReason === 'time_limit'
+              ? 'Time limit reached.'
+              : resultReason === 'move_limit'
+                ? 'Move limit reached.'
+                : 'No player solved the puzzle or both players agreed to end without a winner.'}
+          </div>
+        )}
+        {!canContinueRoom && (
+          <div style={{ fontSize: 7, color: 'var(--red)', marginTop: 6 }}>
+            A player left the room, so rematch and new-puzzle flow are locked for this room.
           </div>
         )}
       </div>
@@ -426,21 +453,21 @@ export default function OnlineResult({
         {/* Rematch */}
         <PixelButton
           onClick={handleRematch}
-          disabled={preparing}
+          disabled={preparing || !canContinueRoom}
           variant={myRematch && !preparing ? "success" : "primary"}
           className="online-result-action-btn online-result-main-action"
         >
-          {preparing ? 'Preparing…' : 'Rematch'}
+          {!canContinueRoom ? 'Opponent Left' : preparing ? 'Preparing…' : 'Rematch'}
         </PixelButton>
 
         {/* New Puzzle */}
         <PixelButton
           onClick={handleNewMatch}
-          disabled={preparing}
+          disabled={preparing || !canContinueRoom}
           variant={myNewMatch && !preparing ? "success" : "secondary"}
           className="online-result-action-btn online-result-main-action"
         >
-          {preparing ? 'Preparing…' : 'New Puzzle'}
+          {!canContinueRoom ? 'Room Locked' : preparing ? 'Preparing…' : 'New Puzzle'}
         </PixelButton>
 
         {/* Status messages — shown when either player has signalled */}
@@ -461,13 +488,6 @@ export default function OnlineResult({
           ) : null;
         })()}
 
-        <PixelButton variant="ghost" onClick={handleBackToLobby} className="online-result-action-btn online-result-sub-action">
-          Lobby
-        </PixelButton>
-
-        <PixelButton variant="danger" onClick={handleLeave} className="online-result-action-btn online-result-sub-action">
-          Leave
-        </PixelButton>
       </div>
     </div>
   );

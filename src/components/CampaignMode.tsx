@@ -9,6 +9,7 @@ import {
 } from '../storage';
 import Board from './Board';
 import PixelButton from './PixelButton';
+import ScreenHeader from './ScreenHeader';
 
 interface Props {
   onPlay: (puzzle: Puzzle) => void;
@@ -58,6 +59,12 @@ export default function CampaignMode({ onPlay, onBack }: Props) {
 
   return (
     <main className="campaign-screen" aria-label="KnightShift level journey">
+      <ScreenHeader
+        title="Level Journey"
+        subtitle={`${completedCount}/${CAMPAIGN_TOTAL_LEVELS} complete · unlocked to level ${unlockedLimit}`}
+        onBack={onBack}
+        backLabel="Menu"
+      />
       <header className="campaign-hero panel">
         <div className="campaign-hero-copy">
           <div className="brand-pill">♞ Main Journey · 120 curated levels</div>
@@ -82,7 +89,6 @@ export default function CampaignMode({ onPlay, onBack }: Props) {
             <PixelButton variant="primary" onClick={() => onPlay(nextPuzzle)}>
               Continue Level {nextPuzzle.campaignLevel}
             </PixelButton>
-            <PixelButton variant="ghost" onClick={onBack}>← Main Menu</PixelButton>
           </div>
         </div>
 

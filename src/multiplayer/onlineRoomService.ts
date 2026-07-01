@@ -18,11 +18,12 @@
  *   submitSolved            solver wins; finalizeRound called
  *   submitMoveLimitReached  player exhausted moves; finalizeRound when both done
  *   resolveTimeLimit        time expired; finalizeRound
- *   forfeitAndLeave         intentional leave; opponent wins
+ *   leaveOnlineRoom         intentional leave policy for lobby/countdown/race/result
+ *   forfeitAndLeave         backwards-compatible alias for active-race leave
  *   requestRematch          sets rematch flag
  *   prepareNextRound        host triggers next round
  *   returnToLobby           back to lobby preserving score
- *   leaveRoom / leaveWaitingRoom
+ *   leaveRoom               browser-close disconnect only
  */
 
 import {
@@ -255,6 +256,7 @@ export async function createRoom(playerName: string, playerId: string): Promise<
     currentRound: 1,
     score: DEFAULT_ROOM_SCORE,
     rematch: { hostWantsRematch: false, guestWantsRematch: false, hostWantsNewMatch: false, guestWantsNewMatch: false },
+    noWinner: { hostRequested: false, guestRequested: false },
   };
   if (DEV) console.log(`[Firestore write] createRoom code=${code}`);
   await setDoc(roomRef(code), room);
@@ -279,16 +281,13 @@ export async function joinRoom(
     room.status === 'generating'
   ) throw new Error('A match is already in progress in this room.');
 
-  if (room.guestId && room.guestId !== playerId)
+  if (room.guestId && room.guestId !== playerId && !room.players.guest?.leftRoom)
     throw new Error('Room is full. Maximum 2 players.');
 
   if (DEV) console.log(`[Firestore write] joinRoom code=${upper}`);
   await updateDoc(roomRef(upper), {
     guestId: playerId,
     'players.guest': blankPlayer(playerName || 'Player 2'),
-    'players.guest.connected': true,
-    'players.guest.leftRoom': false,
-    'players.guest.ready': false,
     updatedAt: serverTimestamp(),
   });
 }
@@ -309,22 +308,125 @@ export async function leaveRoom(roomCode: string, role: 'host' | 'guest'): Promi
   } catch { /* ignore — room may already be gone */ }
 }
 
-/** Leave from the waiting lobby. Host closes the room; guest disconnects. */
+/**
+ * Intentional leave policy for every online phase.
+ *
+ * Rules:
+ * - Waiting lobby: host closes the room; guest slot is released so the host can invite someone else.
+ * - Generating/countdown: host closes the room; guest aborts the start and returns the host to waiting.
+ * - Playing: the leaving player immediately loses; the opponent wins even if the leaver is the host.
+ * - Finished: only marks the player as left; the recorded result stays intact.
+ */
+export async function leaveOnlineRoom(
+  roomCode: string,
+  role: 'host' | 'guest',
+): Promise<void> {
+  if (DEV) console.log(`[Firestore write] leaveOnlineRoom role=${role}`);
+
+  const ref = roomRef(roomCode);
+  const markLeftPatch = {
+    [`players.${role}.connected`]: false,
+    [`players.${role}.leftRoom`]: true,
+    [`players.${role}.ready`]: false,
+    [`players.${role}.lastSeen`]: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+
+  let activeLeaveWinner: { id: string; name: string } | null = null;
+
+  await runTransaction(db, async tx => {
+    const snap = await tx.get(ref);
+    if (!snap.exists()) return;
+    const room = snap.data() as OnlineRoom;
+
+    if (room.status === 'closed') return;
+
+    if (room.status === 'finished') {
+      tx.update(ref, markLeftPatch);
+      return;
+    }
+
+    if (room.status === 'waiting') {
+      if (role === 'host') {
+        tx.update(ref, {
+          ...markLeftPatch,
+          status: 'closed' as RoomStatus,
+          settingsLocked: false,
+        });
+        return;
+      }
+
+      tx.update(ref, {
+        guestId: deleteField(),
+        'players.guest': deleteField(),
+        'players.host.ready': false,
+        settingsLocked: false,
+        updatedAt: serverTimestamp(),
+      });
+      return;
+    }
+
+    if (room.status === 'generating' || room.status === 'countdown') {
+      if (role === 'host') {
+        tx.update(ref, {
+          ...markLeftPatch,
+          status: 'closed' as RoomStatus,
+          settingsLocked: false,
+          puzzleSeed: deleteField(),
+          puzzleOptimalMoves: deleteField(),
+          puzzleDifficulty: deleteField(),
+          moveLimit: deleteField(),
+          timeLimitStartedAt: deleteField(),
+          lastMove: deleteField(),
+          noWinner: { hostRequested: false, guestRequested: false },
+        });
+        return;
+      }
+
+      tx.update(ref, {
+        guestId: deleteField(),
+        'players.guest': deleteField(),
+        'players.host.ready': false,
+        status: 'waiting' as RoomStatus,
+        settingsLocked: false,
+        puzzleSeed: deleteField(),
+        puzzleOptimalMoves: deleteField(),
+        puzzleDifficulty: deleteField(),
+        moveLimit: deleteField(),
+        timeLimitStartedAt: deleteField(),
+        lastMove: deleteField(),
+        noWinner: { hostRequested: false, guestRequested: false },
+        updatedAt: serverTimestamp(),
+      });
+      return;
+    }
+
+    if (room.status === 'playing') {
+      const oppRole = role === 'host' ? 'guest' : 'host';
+      const opp = room.players[oppRole];
+      const oppId = role === 'host' ? (room.guestId ?? '') : room.hostId;
+      activeLeaveWinner = { id: oppId, name: opp?.name ?? '' };
+      tx.update(ref, markLeftPatch);
+    }
+  });
+
+  const winnerAfterLeave = activeLeaveWinner as { id: string; name: string } | null;
+  if (winnerAfterLeave) {
+    await finalizeAndRecord(
+      roomCode,
+      winnerAfterLeave.id,
+      winnerAfterLeave.name,
+      'opponent_left',
+    );
+  }
+}
+
+/** Backwards-compatible lobby wrapper. Use leaveOnlineRoom for new code. */
 export async function leaveWaitingRoom(
   roomCode: string,
   role: 'host' | 'guest',
 ): Promise<void> {
-  if (role === 'host') {
-    if (DEV) console.log(`[Firestore write] leaveWaitingRoom host close code=${roomCode}`);
-    try {
-      await updateDoc(roomRef(roomCode), {
-        status: 'closed' as RoomStatus,
-        updatedAt: serverTimestamp(),
-      });
-    } catch { /* ignore */ }
-  } else {
-    await leaveRoom(roomCode, 'guest');
-  }
+  await leaveOnlineRoom(roomCode, role);
 }
 
 // ─── Lobby settings ────────────────────────────────────────────────────────
@@ -443,6 +545,7 @@ export async function startGame(roomCode: string): Promise<void> {
       status: 'playing' as RoomStatus,
       moveLimit: moveLimit ?? null,
       timeLimitStartedAt: serverTimestamp(),
+      noWinner: { hostRequested: false, guestRequested: false },
       updatedAt: serverTimestamp(),
     });
   });
@@ -513,10 +616,19 @@ export async function submitMoveLimitReached(
   const g = room.players.guest;
   if (!(h.solved || h.moveLimitReached) || !(g.solved || g.moveLimitReached)) return;
 
-  const winner = determineWinner(h, g, room.hostId, room.guestId ?? '');
   const anySolved = h.solved || g.solved;
+
+  // If neither player solved the puzzle, no one should win just because they used
+  // fewer moves before hitting the cap. The professional race outcome is
+  // "No Winner" / draw.
+  if (!anySolved) {
+    await finalizeAndRecord(roomCode, '', '', 'no_winner');
+    return;
+  }
+
+  const winner = determineWinner(h, g, room.hostId, room.guestId ?? '');
   await finalizeAndRecord(
-    roomCode, winner?.id ?? '', winner?.name ?? '', anySolved ? 'solved' : 'move_limit',
+    roomCode, winner?.id ?? '', winner?.name ?? '', 'move_limit',
   );
 }
 
@@ -547,30 +659,95 @@ export async function resolveTimeLimit(
   const room = snap.data() as OnlineRoom;
   if (!room.players.guest) return;
 
+  const h = room.players.host;
+  const g = room.players.guest;
+  const anySolved = h.solved || g.solved;
+
+  // Time up and nobody solved = no winner. Do not award a win based on moves.
+  if (!anySolved) {
+    await finalizeAndRecord(roomCode, '', '', 'no_winner');
+    return;
+  }
+
   const winner = determineWinner(
-    room.players.host, room.players.guest, room.hostId, room.guestId ?? '',
+    h, g, room.hostId, room.guestId ?? '',
   );
   await finalizeAndRecord(roomCode, winner?.id ?? '', winner?.name ?? '', 'time_limit');
 }
 
-export async function forfeitAndLeave(roomCode: string, role: 'host' | 'guest'): Promise<void> {
-  if (DEV) console.log(`[Firestore write] forfeitAndLeave role=${role}`);
-  try {
-    await updateDoc(roomRef(roomCode), {
-      [`players.${role}.connected`]: false,
+export async function requestNoWinner(
+  roomCode: string,
+  role: 'host' | 'guest',
+): Promise<void> {
+  if (DEV) console.log(`[Firestore write] requestNoWinner role=${role}`);
+  let finalized = false;
+
+  await runTransaction(db, async tx => {
+    const snap = await tx.get(roomRef(roomCode));
+    if (!snap.exists()) return;
+    const room = snap.data() as OnlineRoom;
+    if (room.status !== 'playing') return;
+
+    const hostRequested = role === 'host' ? true : (room.noWinner?.hostRequested ?? false);
+    const guestRequested = role === 'guest' ? true : (room.noWinner?.guestRequested ?? false);
+
+    if (hostRequested && guestRequested) {
+      const cur = room.score ?? DEFAULT_ROOM_SCORE;
+      const newScore: RoomScore = {
+        hostWins: cur.hostWins,
+        guestWins: cur.guestWins,
+        draws: cur.draws + 1,
+        totalRounds: cur.totalRounds + 1,
+      };
+
+      tx.update(roomRef(roomCode), {
+        status: 'finished' as RoomStatus,
+        winnerId: '',
+        winnerName: '',
+        resultReason: 'no_winner' as NonNullable<OnlineRoom['resultReason']>,
+        score: newScore,
+        noWinner: { hostRequested: true, guestRequested: true },
+        updatedAt: serverTimestamp(),
+      });
+      finalized = true;
+      return;
+    }
+
+    tx.update(roomRef(roomCode), {
+      [`noWinner.${role}Requested`]: true,
       updatedAt: serverTimestamp(),
     });
-  } catch { /* ignore */ }
+  });
 
-  const snap = await getDoc(roomRef(roomCode));
-  if (!snap.exists()) return;
-  const room = snap.data() as OnlineRoom;
+  if (finalized) {
+    const snap = await getDoc(roomRef(roomCode));
+    if (snap.exists() && (snap.data() as OnlineRoom).status === 'finished') {
+      await recordRoundResult(roomCode, snap.data() as OnlineRoom).catch(console.error);
+    }
+  }
+}
 
-  const oppRole = role === 'host' ? 'guest' : 'host';
-  const opp = room.players[oppRole];
-  const oppId = role === 'host' ? (room.guestId ?? '') : room.hostId;
+export async function cancelNoWinnerRequest(
+  roomCode: string,
+  role: 'host' | 'guest',
+): Promise<void> {
+  if (DEV) console.log(`[Firestore write] cancelNoWinnerRequest role=${role}`);
+  await runTransaction(db, async tx => {
+    const snap = await tx.get(roomRef(roomCode));
+    if (!snap.exists()) return;
+    const room = snap.data() as OnlineRoom;
+    if (room.status !== 'playing') return;
 
-  await finalizeAndRecord(roomCode, oppId, opp?.name ?? '', 'forfeit');
+    tx.update(roomRef(roomCode), {
+      [`noWinner.${role}Requested`]: false,
+      updatedAt: serverTimestamp(),
+    });
+  });
+}
+
+export async function forfeitAndLeave(roomCode: string, role: 'host' | 'guest'): Promise<void> {
+  if (DEV) console.log(`[Firestore write] forfeitAndLeave role=${role}`);
+  await leaveOnlineRoom(roomCode, role);
 }
 
 export async function claimVictoryAfterDisconnect(
@@ -641,6 +818,7 @@ export async function prepareRematch(roomCode: string): Promise<void> {
       winnerName:         deleteField(),
       resultReason:       deleteField(),
       lastMove:           deleteField(),
+      noWinner:           { hostRequested: false, guestRequested: false },
       updatedAt:          serverTimestamp(),
     });
   });
@@ -678,6 +856,7 @@ export async function prepareNextRound(roomCode: string): Promise<void> {
       winnerName:         deleteField(),
       resultReason:       deleteField(),
       lastMove:           deleteField(),
+      noWinner:           { hostRequested: false, guestRequested: false },
       updatedAt:          serverTimestamp(),
     });
   });
@@ -692,15 +871,28 @@ export async function returnToLobby(roomCode: string): Promise<void> {
     const room = snap.data() as OnlineRoom;
     if (room.status !== 'finished') return;
 
+    // If the host has left, the room cannot continue professionally because
+    // host-only generation/rematch actions would be unavailable.
+    if (room.players.host.leftRoom) {
+      tx.update(roomRef(roomCode), {
+        status: 'closed' as RoomStatus,
+        settingsLocked: false,
+        updatedAt: serverTimestamp(),
+      });
+      return;
+    }
+
+    const guestLeft = room.players.guest?.leftRoom ?? false;
     const resetPlayers: OnlinePlayers = {
       host: resetPlayer(room.players.host),
-      ...(room.players.guest ? { guest: resetPlayer(room.players.guest) } : {}),
+      ...(room.players.guest && !guestLeft ? { guest: resetPlayer(room.players.guest) } : {}),
     };
 
     tx.update(roomRef(roomCode), {
       status:         'waiting' as RoomStatus,
       settingsLocked: false,
       players:        resetPlayers,
+      ...(guestLeft ? { guestId: deleteField() } : {}),
       'rematch.hostWantsRematch':   false,
       'rematch.guestWantsRematch':  false,
       'rematch.hostWantsNewMatch':  false,
@@ -714,6 +906,7 @@ export async function returnToLobby(roomCode: string): Promise<void> {
       winnerName:         deleteField(),
       resultReason:       deleteField(),
       lastMove:           deleteField(),
+      noWinner:           { hostRequested: false, guestRequested: false },
       updatedAt:          serverTimestamp(),
       // score, currentRound, puzzleConfig preserved
     });
@@ -733,6 +926,7 @@ function tsMillis(ts: unknown): number | null {
 
 /** True if the player is connected and their heartbeat is recent (within 20 s). */
 export function isPlayerOnline(player: OnlinePlayerData): boolean {
+  if (player.leftRoom) return false;
   if (!player.connected) return false;
   if (player.lastSeen === undefined || player.lastSeen === null) return true;
   const ms = tsMillis(player.lastSeen);

@@ -4,6 +4,7 @@ import { getSavedPuzzles, deleteSavedPuzzle, getPersonalBest } from '../storage'
 import { decodePuzzleCode } from '../generator/puzzleGenerator';
 import Board from './Board';
 import PixelButton from './PixelButton';
+import ScreenHeader from './ScreenHeader';
 
 interface Props {
   onPlay: (puzzle: Puzzle) => void;
@@ -54,7 +55,12 @@ export default function SavedPuzzles({ onPlay, onBack }: Props) {
 
   return (
     <div className="select-screen">
-      <h1 className="select-title">Saved Puzzles</h1>
+      <ScreenHeader
+        title="Saved Puzzles"
+        subtitle="Import, replay, and manage your saved custom boards."
+        onBack={onBack}
+        backLabel="Menu"
+      />
 
       {/* Import Section */}
       <div className="panel" style={{ padding: 14, marginBottom: 24, width: '100%', maxWidth: 600 }}>
@@ -139,9 +145,6 @@ export default function SavedPuzzles({ onPlay, onBack }: Props) {
         </div>
       )}
 
-      <div className="select-bottom">
-        <PixelButton variant="ghost" onClick={onBack}>← Back</PixelButton>
-      </div>
     </div>
   );
 }

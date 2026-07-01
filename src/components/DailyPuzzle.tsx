@@ -5,6 +5,7 @@ import { getDailySeed, getTodayString } from '../generator/seed';
 import { getCachedDailyPuzzle, cacheDailyPuzzle, getDailyResult } from '../storage';
 import Board from './Board';
 import PixelButton from './PixelButton';
+import ScreenHeader from './ScreenHeader';
 
 interface Props {
   onPlay: (puzzle: Puzzle) => void;
@@ -106,10 +107,12 @@ export default function DailyPuzzle({ onPlay, onBack }: Props) {
 
   return (
     <div className="select-screen">
-      <h1 className="select-title">Daily Puzzle</h1>
-      <div style={{ fontSize: 8, color: 'var(--text-dim)', marginBottom: 24 }}>
-        {today} — same puzzle for everyone today
-      </div>
+      <ScreenHeader
+        title="Daily Puzzle"
+        subtitle={`${today} · same puzzle for everyone today`}
+        onBack={onBack}
+        backLabel="Menu"
+      />
 
       <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', justifyContent: 'center', maxWidth: 700 }}>
         {slots.map(slot => {
@@ -161,9 +164,6 @@ export default function DailyPuzzle({ onPlay, onBack }: Props) {
         })}
       </div>
 
-      <div className="select-bottom">
-        <PixelButton variant="ghost" onClick={onBack}>← Back</PixelButton>
-      </div>
     </div>
   );
 }

@@ -1060,7 +1060,7 @@ button.danger {
 .modal-stat { color: var(--text-dim); line-height: 1.8; }
 .modal-buttons { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
 
-.credits-screen { display: grid; place-items: center; align-content: center; gap: 1rem; text-align: center; }
+.credits-screen { display: grid; justify-items: center; align-content: start; gap: 1rem; text-align: center; }
 .credits-title { font-size: clamp(2rem, 8vw, 4rem); }
 .credits-text { color: var(--text-dim); line-height: 1.9; font-size: clamp(0.88rem, 3vw, 1rem); }
 .daily-slot { min-height: 280px; }
@@ -2864,7 +2864,7 @@ body::after {
 
 @media (max-width: 720px) {
   .screen-header {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(82px, 0.75fr) minmax(0, 1.5fr) minmax(82px, 0.75fr);
     gap: 0.45rem;
     margin-left: calc(-1 * clamp(14px, 4vw, 34px));
     margin-right: calc(-1 * clamp(14px, 4vw, 34px));
@@ -2875,6 +2875,10 @@ body::after {
   .screen-header-kicker { display: none; }
   .screen-header h1 { font-size: clamp(0.98rem, 4.7vw, 1.32rem); }
   .screen-header-btn.pixel-btn { min-height: 36px; padding-inline: 0.56rem; }
+  .race-screen-header { grid-template-columns: minmax(0, 0.34fr) minmax(0, 1fr) minmax(128px, 0.72fr); }
+  .race-screen-header .screen-header-action-left { display: none; }
+  .race-screen-header .screen-header-action-right { gap: 0.32rem; }
+  .race-screen-header .online-race-clock { min-width: 58px; padding-inline: 0.42rem; }
   .online-lobby-primary { grid-template-columns: 1fr; }
   .online-ready-checklist { grid-template-columns: 1fr; }
   .online-actions-row { grid-template-columns: 1fr; }
@@ -2915,4 +2919,234 @@ body::after {
     margin-right: 0;
     width: 100%;
   }
+}
+
+.online-no-winner-banner {
+  border-color: rgba(125, 211, 252, 0.38);
+  background: rgba(12, 74, 110, 0.30);
+  color: #e0f2fe;
+}
+
+.online-no-winner-banner button {
+  border-color: rgba(125, 211, 252, 0.36);
+  color: #e0f2fe;
+  background: rgba(125, 211, 252, 0.12);
+}
+
+.online-no-winner-banner button:hover {
+  border-color: rgba(125, 211, 252, 0.55);
+  background: rgba(125, 211, 252, 0.18);
+}
+
+.online-race-screen .right-panel .action-buttons {
+  height: auto;
+  grid-template-columns: 1fr;
+  grid-auto-rows: auto;
+}
+
+.online-race-screen .right-panel .action-buttons .control-btn {
+  min-height: 42px;
+  height: auto;
+}
+
+/* Mobile hero centering fix: keep the complete hero content visually centered inside the panel. */
+@media (max-width: 760px) {
+  .menu-hero.panel {
+    justify-items: center;
+    text-align: center;
+    isolation: isolate;
+  }
+
+  .menu-hero::after {
+    left: 50%;
+    right: auto;
+    top: -24rem;
+    transform: translateX(-50%);
+  }
+
+  .menu-hero-copy {
+    width: min(100%, 520px);
+    justify-items: center;
+    margin-inline: auto;
+  }
+
+  .menu-primary-actions {
+    justify-self: center;
+    margin-inline: auto;
+  }
+
+  .menu-preview-shell {
+    justify-self: center;
+    margin-inline: auto;
+    transform: none;
+  }
+
+  .menu-preview-shell .board-wrapper {
+    margin-inline: auto;
+  }
+
+  .menu-preview-shell .chess-board {
+    margin-inline: auto;
+  }
+
+  .menu-preview-meta {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 420px) {
+  .menu-hero.panel {
+    padding-inline: clamp(0.86rem, 4.6vw, 1.12rem);
+  }
+
+  .menu-preview-shell {
+    width: min(100%, 300px);
+    box-sizing: border-box;
+  }
+}
+
+/* Online invite link + QR */
+.invite-entry-card {
+  width: min(100%, 640px);
+  padding: 1rem;
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 0.55rem;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(34,211,238,0.14), transparent 58%),
+    linear-gradient(145deg, rgba(255,255,255,0.10), rgba(255,255,255,0.045));
+}
+.invite-entry-badge {
+  padding: 0.32rem 0.62rem;
+  border: 1px solid rgba(34,211,238,0.28);
+  border-radius: 999px;
+  color: #cffafe;
+  background: rgba(34,211,238,0.10);
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.invite-entry-code {
+  color: var(--gold);
+  font-size: clamp(2rem, 13vw, 3.8rem);
+  font-weight: 950;
+  letter-spacing: 0.18em;
+  text-shadow: 0 0 34px rgba(251,191,36,0.26);
+}
+.invite-entry-card p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: clamp(0.78rem, 2.5vw, 0.92rem);
+  line-height: 1.5;
+}
+.online-menu-options.invite-mode {
+  grid-template-columns: minmax(0, 520px);
+  justify-content: center;
+}
+.online-menu-options.invite-mode .online-menu-card {
+  min-height: 0;
+}
+.online-code-input:disabled {
+  opacity: 1;
+  color: var(--gold);
+  background: rgba(251,191,36,0.08);
+  border-color: rgba(251,191,36,0.22);
+}
+.online-invite-card {
+  align-content: start;
+}
+.invite-action-grid {
+  width: min(100%, 360px);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.48rem;
+  margin-top: 0.35rem;
+}
+.invite-action-grid .pixel-btn {
+  width: 100%;
+}
+.invite-link-preview,
+.invite-qr-toggle {
+  width: min(100%, 420px);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
+  color: var(--text-dim);
+  background: rgba(255,255,255,0.045);
+  cursor: pointer;
+}
+.invite-link-preview {
+  min-height: 42px;
+  padding: 0.62rem 0.74rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: clamp(0.66rem, 2.1vw, 0.78rem);
+  font-weight: 800;
+}
+.invite-link-preview:hover,
+.invite-qr-toggle:hover {
+  color: var(--text);
+  border-color: rgba(34,211,238,0.26);
+  background: rgba(34,211,238,0.08);
+}
+.invite-qr-toggle {
+  min-height: 34px;
+  padding: 0.45rem 0.62rem;
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+.invite-qr-shell {
+  width: min(100%, 260px);
+  margin-top: 0.2rem;
+  padding: 0.72rem;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(251,191,36,0.10), transparent 56%),
+    rgba(255,255,255,0.055);
+  display: grid;
+  gap: 0.5rem;
+  justify-items: center;
+}
+.invite-qr-shell span {
+  color: var(--text-dim);
+  font-size: 0.68rem;
+  font-weight: 850;
+}
+.invite-qr {
+  width: min(100%, 190px);
+  height: auto;
+  display: block;
+  color: #fff;
+  --qr-ink: #111827;
+  border-radius: 14px;
+  box-shadow: 0 16px 34px rgba(0,0,0,0.22);
+}
+
+@media (max-width: 720px) {
+  .invite-action-grid {
+    grid-template-columns: 1fr;
+  }
+  .invite-qr-shell {
+    width: min(100%, 230px);
+  }
+  .invite-qr {
+    width: min(100%, 176px);
+  }
+}
+.invite-qr-fallback {
+  width: min(100%, 190px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  color: var(--text-dim);
+  background: rgba(255,255,255,0.06);
+  border: 1px dashed rgba(255,255,255,0.22);
+  border-radius: 16px;
+  font-size: 0.7rem;
+  font-weight: 850;
+  line-height: 1.45;
 }

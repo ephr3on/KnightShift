@@ -18,10 +18,12 @@ import {
   submitMoveLimitReached,
   resolveTimeLimit,
   leaveRoom,
-  forfeitAndLeave,
+  leaveOnlineRoom,
   startPresenceHeartbeat,
   isPlayerOnline,
   claimVictoryAfterDisconnect,
+  requestNoWinner,
+  cancelNoWinnerRequest,
 } from '../multiplayer/onlineRoomService';
 import { saveOnlineRaceProgress, loadOnlineRaceProgress, clearOnlineRaceProgress } from '../multiplayer/onlineRaceProgressStorage';
 
@@ -299,14 +301,30 @@ export default function OnlineRace({
 
   const handleLeaveConfirm = async () => {
     setForfeiting(true);
-    await forfeitAndLeave(initialRoom.roomCode, myRole).catch(() => {});
-    // Navigation is driven by the room subscription: forfeit sets status → 'finished',
+    await leaveOnlineRoom(initialRoom.roomCode, myRole).catch(() => {});
+    // Navigation is driven by the room subscription: leaving during play sets status → 'finished',
     // the onSnapshot callback fires onFinish(r), and both players go to the result screen.
   };
 
   const handleClaimDisconnect = async () => {
     if (!opponentData || isPlayerOnline(opponentData)) return;
     await claimVictoryAfterDisconnect(initialRoom.roomCode, playerId, playerName).catch(console.error);
+  };
+
+  const myNoWinnerRequested = myRole === 'host'
+    ? (room.noWinner?.hostRequested ?? false)
+    : (room.noWinner?.guestRequested ?? false);
+  const opponentNoWinnerRequested = myRole === 'host'
+    ? (room.noWinner?.guestRequested ?? false)
+    : (room.noWinner?.hostRequested ?? false);
+
+  const handleNoWinnerRequest = async () => {
+    if (gameOver || room.status !== 'playing') return;
+    if (myNoWinnerRequested) {
+      await cancelNoWinnerRequest(initialRoom.roomCode, myRole).catch(console.error);
+      return;
+    }
+    await requestNoWinner(initialRoom.roomCode, myRole).catch(console.error);
   };
 
   const selectedPiece = pieces.find(p => p.id === selected) ?? null;
@@ -338,7 +356,7 @@ export default function OnlineRace({
               <>
                 <div style={{ fontSize: 10, color: 'var(--yellow)', marginBottom: 12 }}>Forfeiting…</div>
                 <div style={{ fontSize: 8, color: 'var(--text-dim)' }}>
-                  Taking you to the result screen.
+                  Ending the round and taking you to the result screen.
                 </div>
               </>
             ) : (
@@ -358,6 +376,7 @@ export default function OnlineRace({
       )}
 
       <ScreenHeader
+        className="race-screen-header"
         title="Online Race"
         subtitle={`${rounds > 1 ? `Round ${currentRound} of ${rounds} · ` : ''}${puzzle.difficulty} · ${room.puzzleConfig.boardSize} board${withTurns && !gameOver ? ` · Turn: ${turn === 'white' ? 'White' : 'Black'}` : ''}`}
         right={
@@ -385,6 +404,13 @@ export default function OnlineRace({
         </div>
       )}
 
+      {opponentNoWinnerRequested && !gameOver && room.status === 'playing' && (
+        <div className="online-disconnect-banner online-no-winner-banner">
+          <span>🤝 {opponentData?.name ?? 'Opponent'} offered a no-winner draw.</span>
+          <button type="button" onClick={handleNoWinnerRequest}>Accept Draw</button>
+        </div>
+      )}
+
       {/* Left panel */}
       <div className="panel left-panel online-status-panel">
         {reconnectedWithProgress && (
@@ -394,6 +420,11 @@ export default function OnlineRace({
         )}
         <div className="panel-title" style={{ color: 'var(--yellow)' }}>You</div>
         <div style={{ fontSize: 9, color: '#fff', marginBottom: 4 }}>{playerName}</div>
+        {myNoWinnerRequested && !gameOver && (
+          <div style={{ fontSize: 7, color: 'var(--text-dim)', marginBottom: 8 }}>
+            No-winner draw offered — waiting for opponent.
+          </div>
+        )}
 
         <div style={{ fontSize: 8, color: 'var(--text-dim)', marginBottom: 2 }}>
           Moves: <span style={{ color: '#fff' }}>{history.length}</span>
@@ -491,16 +522,6 @@ export default function OnlineRace({
           </div>
         </div>
 
-        <div className="race-leave-section" style={{ marginTop: 'auto', paddingTop: 16 }}>
-          <PixelButton
-            variant="danger"
-            className="btn-compact"
-            onClick={() => setShowLeaveConfirm(true)}
-            style={{ width: '100%' }}
-          >
-            Leave Race
-          </PixelButton>
-        </div>
       </div>
 
       {/* Board */}
@@ -538,9 +559,21 @@ export default function OnlineRace({
           <PixelButton variant="secondary" className="control-btn" onClick={() => setSelected(null)} disabled={!selected || gameOver}>
             Clear Selection
           </PixelButton>
-          <PixelButton variant="danger" className="control-btn" onClick={() => setShowLeaveConfirm(true)} disabled={gameOver}>
-            Leave Race
+          <PixelButton
+            variant={opponentNoWinnerRequested && !myNoWinnerRequested ? 'success' : myNoWinnerRequested ? 'secondary' : 'ghost'}
+            className="control-btn"
+            onClick={handleNoWinnerRequest}
+            disabled={gameOver || room.status !== 'playing'}
+          >
+            {opponentNoWinnerRequested && !myNoWinnerRequested
+              ? 'Accept Draw'
+              : myNoWinnerRequested
+                ? 'Cancel Draw Offer'
+                : 'Offer Draw'}
           </PixelButton>
+          <div style={{ fontSize: 6, color: 'var(--text-dim)', lineHeight: 1.6, textAlign: 'center' }}>
+            No winner only ends the round when both players agree.
+          </div>
         </div>
       </div>
     </div>

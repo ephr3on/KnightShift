@@ -2,10 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import type { Puzzle } from '../types';
 import PixelButton from './PixelButton';
 import ScreenHeader from './ScreenHeader';
+import QRCode from './QRCode';
 import {
   subscribeToRoom,
   subscribeToRounds,
-  leaveWaitingRoom,
+  leaveOnlineRoom,
   hostStartMatch,
   saveSeedAndStartCountdown,
   generationFailed,
@@ -14,7 +15,6 @@ import {
   setPlayerReady,
   startPresenceHeartbeat,
   markPlayerDisconnected,
-  markPlayerLeftRoom,
   isPlayerOnline,
 } from '../multiplayer/onlineRoomService';
 import { loadOnlineSession, clearOnlineSession } from '../multiplayer/onlineSessionStorage';
@@ -136,6 +136,8 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
   const [countdown, setCountdown] = useState(3);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [copiedInvite, setCopiedInvite] = useState(false);
+  const [showInviteQr, setShowInviteQr] = useState(true);
   const [settingsNotice, setSettingsNotice] = useState('');
   const [localSettings, setLocalSettings] = useState<OnlineMatchSettings>(DEFAULT_MATCH_SETTINGS);
   const [roomClosed, setRoomClosed] = useState(false);
@@ -311,17 +313,31 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
 
   const handleLeave = async () => {
     const myRole = room?.hostId === playerId ? 'host' : 'guest';
-    await markPlayerLeftRoom(roomCode, myRole).catch(() => {});
-    await leaveWaitingRoom(roomCode, myRole).catch(console.error);
+    await leaveOnlineRoom(roomCode, myRole).catch(console.error);
     clearOnlineSession();
     clearOnlineRaceProgress();
     onLeave();
+  };
+
+  const getInviteLink = () => {
+    const url = new URL(window.location.href);
+    url.search = '';
+    url.hash = '';
+    url.searchParams.set('room', roomCode);
+    return url.toString();
   };
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(roomCode).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const handleCopyInviteLink = () => {
+    navigator.clipboard.writeText(getInviteLink()).then(() => {
+      setCopiedInvite(true);
+      setTimeout(() => setCopiedInvite(false), 2200);
     });
   };
 
@@ -394,6 +410,7 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
         : settingsUpdating
           ? 'Settings are still saving.'
           : '';
+  const inviteLink = getInviteLink();
 
   // ── Special states ───────────────────────────────────────────────────────────
 
@@ -403,7 +420,7 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
         <ScreenHeader title="Room Closed" subtitle="The host has closed this room." onBack={onLeave} backLabel="Menu" />
         <div className="online-connecting">
           <div style={{ fontSize: 10, color: 'var(--red)', marginBottom: 12 }}>Room Closed</div>
-          <PixelButton variant="ghost" onClick={onLeave}>Back to Menu</PixelButton>
+          <div style={{ fontSize: 8, color: 'var(--text-dim)' }}>Use the header button to return to the menu.</div>
         </div>
       </div>
     );
@@ -462,17 +479,46 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
 
       <div className="online-lobby-grid">
         <div className="online-lobby-primary">
-      {/* Room code */}
-      <div className="panel online-code-panel online-room-code-card">
-        <div style={{ fontSize: 8, color: 'var(--text-dim)', marginBottom: 8 }}>Room Code</div>
+      {/* Room invite */}
+      <div className="panel online-code-panel online-room-code-card online-invite-card">
+        <div style={{ fontSize: 8, color: 'var(--text-dim)', marginBottom: 8 }}>Invite Room</div>
         <div className="online-code-display">{roomCode}</div>
-        <div style={{ marginTop: 12 }}>
+
+        <div className="invite-action-grid">
           <PixelButton variant="secondary" className="btn-compact" onClick={handleCopyCode}>
-            {copied ? '✓ Copied!' : 'Copy Code'}
+            {copied ? '✓ Code Copied' : 'Copy Code'}
+          </PixelButton>
+          <PixelButton variant="primary" className="btn-compact" onClick={handleCopyInviteLink}>
+            {copiedInvite ? '✓ Link Copied' : 'Copy Link'}
           </PixelButton>
         </div>
-        <div style={{ fontSize: 7, color: 'var(--text-dim)', marginTop: 8 }}>
-          Share this code with a friend
+
+        <button
+          type="button"
+          className="invite-link-preview"
+          onClick={handleCopyInviteLink}
+          title={inviteLink}
+        >
+          {inviteLink.replace(/^https?:\/\//, '')}
+        </button>
+
+        <button
+          type="button"
+          className="invite-qr-toggle"
+          onClick={() => setShowInviteQr(v => !v)}
+        >
+          {showInviteQr ? 'Hide QR Code' : 'Show QR Code'}
+        </button>
+
+        {showInviteQr && (
+          <div className="invite-qr-shell">
+            <QRCode value={inviteLink} />
+            <span>Scan to join directly</span>
+          </div>
+        )}
+
+        <div style={{ fontSize: 7, color: 'var(--text-dim)', marginTop: 8, lineHeight: 1.45 }}>
+          The link opens Online Race with this room prefilled. The guest only enters their name.
         </div>
       </div>
 

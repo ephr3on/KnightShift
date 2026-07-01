@@ -17,6 +17,29 @@ import OnlineLobby from './components/OnlineLobby';
 import OnlineRace from './components/OnlineRace';
 import OnlineResult from './components/OnlineResult';
 
+
+function readInviteRoomCodeFromUrl(): string {
+  const url = new URL(window.location.href);
+  const queryCode = url.searchParams.get('room') || url.searchParams.get('join') || url.searchParams.get('r');
+  if (queryCode) return queryCode.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5);
+
+  const hash = window.location.hash.replace(/^#/, '');
+  const hashParams = new URLSearchParams(hash);
+  const hashCode = hashParams.get('room') || hashParams.get('join') || hashParams.get('r');
+  return hashCode ? hashCode.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5) : '';
+}
+
+function clearInviteRoomCodeFromUrl(): void {
+  const url = new URL(window.location.href);
+  const hadInvite = url.searchParams.has('room') || url.searchParams.has('join') || url.searchParams.has('r') || window.location.hash.includes('room=');
+  if (!hadInvite) return;
+  url.searchParams.delete('room');
+  url.searchParams.delete('join');
+  url.searchParams.delete('r');
+  url.hash = '';
+  window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+}
+
 export default function App() {
   const [screen, setScreen] = useState<Screen>('menu');
   const [activePuzzle, setActivePuzzle] = useState<Puzzle | null>(null);
@@ -28,6 +51,7 @@ export default function App() {
   const [onlinePlayerId, setOnlinePlayerId] = useState('');
   const [onlinePlayerName, setOnlinePlayerName] = useState('');
   const [onlineRoom, setOnlineRoom] = useState<OnlineRoom | null>(null);
+  const [initialInviteRoomCode, setInitialInviteRoomCode] = useState(() => readInviteRoomCodeFromUrl());
   /**
    * Puzzle is generated/reproduced locally by OnlineLobby from the Firestore seed.
    * No large board arrays are stored in Firestore.
@@ -45,12 +69,21 @@ export default function App() {
     setScreen('puzzle-select');
   };
 
-  // Session restore on app startup
+  // Session restore or direct invite-link entry on app startup
   useEffect(() => {
     const session = loadOnlineSession();
-    if (!session) return;
+    if (!session) {
+      if (initialInviteRoomCode) setScreen('online-menu');
+      return;
+    }
+
     restoreRoomSession(session.roomCode, session.playerId).then(room => {
-      if (!room) { clearOnlineSession(); clearOnlineRaceProgress(); return; }
+      if (!room) {
+        clearOnlineSession();
+        clearOnlineRaceProgress();
+        if (initialInviteRoomCode) setScreen('online-menu');
+        return;
+      }
       setOnlineRoomCode(session.roomCode);
       setOnlinePlayerId(session.playerId);
       setOnlinePlayerName(session.playerName);
@@ -65,6 +98,7 @@ export default function App() {
         setScreen('online-result');
       } else {
         clearOnlineSession();
+        if (initialInviteRoomCode) setScreen('online-menu');
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -79,6 +113,8 @@ export default function App() {
     setOnlineRoomCode(roomCode);
     setOnlinePlayerId(playerId);
     setOnlinePlayerName(playerName);
+    setInitialInviteRoomCode('');
+    clearInviteRoomCodeFromUrl();
     saveOnlineSession({ roomCode, playerId, playerName, role });
     setScreen('online-lobby');
   };
@@ -107,6 +143,8 @@ export default function App() {
   const handleOnlineExit = () => {
     clearOnlineSession();
     clearOnlineRaceProgress();
+    setInitialInviteRoomCode('');
+    clearInviteRoomCodeFromUrl();
     setOnlineRoomCode('');
     setOnlinePlayerId('');
     setOnlinePlayerName('');
@@ -172,7 +210,12 @@ export default function App() {
       {screen === 'online-menu' && (
         <OnlineMenu
           onRoomReady={handleOnlineRoomReady}
-          onBack={() => setScreen('menu')}
+          onBack={() => {
+            setInitialInviteRoomCode('');
+            clearInviteRoomCodeFromUrl();
+            setScreen('menu');
+          }}
+          initialJoinCode={initialInviteRoomCode}
         />
       )}
       {screen === 'online-lobby' && (

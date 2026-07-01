@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import PixelButton from './PixelButton';
 import ScreenHeader from './ScreenHeader';
 import { ensureAnonymousAuth } from '../firebase';
@@ -7,21 +7,36 @@ import { createRoom, joinRoom } from '../multiplayer/onlineRoomService';
 interface Props {
   onRoomReady: (roomCode: string, playerId: string, playerName: string, role: 'host' | 'guest') => void;
   onBack: () => void;
+  initialJoinCode?: string;
 }
 
-export default function OnlineMenu({ onRoomReady, onBack }: Props) {
+function cleanRoomCode(value: string): string {
+  return value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5);
+}
+
+export default function OnlineMenu({ onRoomReady, onBack, initialJoinCode = '' }: Props) {
+  const invitedCode = cleanRoomCode(initialJoinCode);
   const [playerName, setPlayerName] = useState('');
-  const [joinCode, setJoinCode] = useState('');
+  const [joinCode, setJoinCode] = useState(invitedCode);
   const [loading, setLoading] = useState<'create' | 'join' | null>(null);
   const [error, setError] = useState('');
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!invitedCode) return;
+    setJoinCode(invitedCode);
+    const id = window.setTimeout(() => nameInputRef.current?.focus(), 80);
+    return () => window.clearTimeout(id);
+  }, [invitedCode]);
 
   async function handleCreate() {
     setLoading('create');
     setError('');
     try {
+      const hostName = playerName.trim() || 'Player 1';
       const playerId = await ensureAnonymousAuth();
-      const code = await createRoom(playerName.trim() || 'Player 1', playerId);
-      onRoomReady(code, playerId, playerName.trim() || 'Player 1', 'host');
+      const code = await createRoom(hostName, playerId);
+      onRoomReady(code, playerId, hostName, 'host');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create room.');
     } finally {
@@ -30,14 +45,16 @@ export default function OnlineMenu({ onRoomReady, onBack }: Props) {
   }
 
   async function handleJoin() {
-    const code = joinCode.toUpperCase().trim();
+    const code = cleanRoomCode(joinCode);
+    const guestName = playerName.trim();
     if (!code) { setError('Enter a room code first.'); return; }
+    if (!guestName) { setError('Enter your name before joining.'); nameInputRef.current?.focus(); return; }
     setLoading('join');
     setError('');
     try {
       const playerId = await ensureAnonymousAuth();
-      await joinRoom(code, playerName.trim() || 'Player 2', playerId);
-      onRoomReady(code, playerId, playerName.trim() || 'Player 2', 'guest');
+      await joinRoom(code, guestName, playerId);
+      onRoomReady(code, playerId, guestName, 'guest');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to join room.');
     } finally {
@@ -45,49 +62,66 @@ export default function OnlineMenu({ onRoomReady, onBack }: Props) {
     }
   }
 
+  const inviteMode = !!invitedCode;
+
   return (
     <div className="select-screen online-menu-shell">
       <ScreenHeader
-        title="Online Race"
-        subtitle="Create a private room or join with a code."
+        title={inviteMode ? 'Join Invite' : 'Online Race'}
+        subtitle={inviteMode ? `Room ${invitedCode} is ready. Enter your name to join.` : 'Create a private room or join with a code.'}
         onBack={onBack}
         backLabel="Menu"
       />
 
+      {inviteMode && (
+        <div className="panel invite-entry-card">
+          <div className="invite-entry-badge">Invite Link</div>
+          <div className="invite-entry-code">{invitedCode}</div>
+          <p>One step left: write your player name and join the lobby.</p>
+        </div>
+      )}
+
       <div className="panel online-menu-name-card">
         <div className="panel-title">Your Name</div>
         <input
+          ref={nameInputRef}
           className="gen-seed-input"
           value={playerName}
           onChange={e => setPlayerName(e.target.value.slice(0, 16))}
-          placeholder="Enter your name…"
+          placeholder={inviteMode ? 'Guest name…' : 'Enter your name…'}
           maxLength={16}
           style={{ marginTop: 8 }}
+          onKeyDown={e => { if (e.key === 'Enter' && inviteMode) handleJoin(); }}
         />
       </div>
 
-      <div className="online-menu-options">
-        <div className="panel online-menu-card">
-          <div className="panel-title">Create Room</div>
-          <p className="online-card-desc">Start a new private room and share the code with a friend.</p>
-          <PixelButton variant="primary" onClick={handleCreate} disabled={loading !== null}>
-            {loading === 'create' ? 'Creating…' : 'Create Room'}
-          </PixelButton>
-        </div>
+      <div className={`online-menu-options${inviteMode ? ' invite-mode' : ''}`}>
+        {!inviteMode && (
+          <div className="panel online-menu-card">
+            <div className="panel-title">Create Room</div>
+            <p className="online-card-desc">Start a new private room and share an invite link or QR code with a friend.</p>
+            <PixelButton variant="primary" onClick={handleCreate} disabled={loading !== null}>
+              {loading === 'create' ? 'Creating…' : 'Create Room'}
+            </PixelButton>
+          </div>
+        )}
 
         <div className="panel online-menu-card">
-          <div className="panel-title">Join Room</div>
-          <p className="online-card-desc">Enter the room code your friend sent you.</p>
+          <div className="panel-title">{inviteMode ? 'Join This Room' : 'Join Room'}</div>
+          <p className="online-card-desc">
+            {inviteMode ? 'The invite code is already filled in from the link.' : 'Enter the room code your friend sent you.'}
+          </p>
           <input
             className="gen-seed-input online-code-input"
             value={joinCode}
-            onChange={e => setJoinCode(e.target.value.toUpperCase().slice(0, 5))}
+            onChange={e => setJoinCode(cleanRoomCode(e.target.value))}
             placeholder="XXXXX"
             maxLength={5}
+            disabled={inviteMode}
             onKeyDown={e => { if (e.key === 'Enter') handleJoin(); }}
           />
           <PixelButton variant="primary" onClick={handleJoin} disabled={loading !== null || !joinCode.trim()}>
-            {loading === 'join' ? 'Joining…' : 'Join Room'}
+            {loading === 'join' ? 'Joining…' : inviteMode ? 'Join Invite' : 'Join Room'}
           </PixelButton>
         </div>
       </div>
