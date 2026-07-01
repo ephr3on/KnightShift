@@ -12,6 +12,7 @@ import {
 } from '../gameLogic';
 import Board from './Board';
 import PixelButton from './PixelButton';
+import ScreenHeader from './ScreenHeader';
 import WinModal from './WinModal';
 import SolverModal from './SolverModal';
 import { completeCampaignLevel } from '../storage';
@@ -142,24 +143,25 @@ export default function GameScreen({ puzzle, onBack, onBackToMenu }: Props) {
 
 
   const modeLabel = puzzle.mode === 'no-turns' ? 'No Turns' : 'With Turns';
-  const titleLabel = `${puzzle.name} (${modeLabel})`;
   const hintFrom = hint?.ok ? hint.from : null;
   const hintTo = hint?.ok ? hint.to : null;
 
   return (
     <div className="game-screen solo-game-screen">
-      {/* Title row */}
-      <div className="game-title-row">
-        <div className="game-title">{titleLabel}</div>
-        {withTurns && !won && (
+      <ScreenHeader
+        title={puzzle.name}
+        subtitle={`${modeLabel} · Optimal ${puzzle.optimalMoves} moves${puzzle.campaignLevel ? ` · Level ${puzzle.campaignLevel}` : ''}`}
+        onBack={onBack}
+        backLabel="Back"
+        right={withTurns && !won ? (
           <div className="turn-indicator">
             Turn:{' '}
             <span className={turn === 'white' ? 'turn-white' : 'turn-black'}>
               {turn === 'white' ? '♘ White' : '♞ Black'}
             </span>
           </div>
-        )}
-      </div>
+        ) : null}
+      />
 
       {/* Left panel: Moves History */}
       <div className={`panel left-panel move-history-panel ${history.length > 4 ? 'has-older-moves' : ''}`}>

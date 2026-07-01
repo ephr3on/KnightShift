@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import PixelButton from './PixelButton';
+import ScreenHeader from './ScreenHeader';
 import {
   subscribeToRoom,
   subscribeToRounds,
@@ -221,7 +222,12 @@ export default function OnlineResult({
   };
 
   return (
-    <div className="menu-screen" style={{ overflowY: 'auto' }}>
+    <div className="menu-screen online-result-shell" style={{ overflowY: 'auto' }}>
+      <ScreenHeader
+        title="Round Result"
+        subtitle={rounds_setting > 1 ? `Round ${currentRound} of ${rounds_setting} · ${headline}` : headline}
+        right={<PixelButton variant="danger" className="screen-header-btn" onClick={handleLeave}>Leave</PixelButton>}
+      />
 
       {/* ── Title ── */}
       <div className="online-result-header">

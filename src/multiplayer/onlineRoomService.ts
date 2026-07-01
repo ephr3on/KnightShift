@@ -78,11 +78,29 @@ function computeMoveLimit(optimalMoves: number, mode: MoveLimitMode): number | n
 }
 
 function blankPlayer(name: string): OnlinePlayerData {
-  return { name, moveCount: 0, solved: false, timeMs: 0, connected: true, moveLimitReached: false };
+  return {
+    name,
+    moveCount: 0,
+    solved: false,
+    timeMs: 0,
+    connected: true,
+    moveLimitReached: false,
+    leftRoom: false,
+    ready: false,
+  };
 }
 
 function resetPlayer(p: OnlinePlayerData): OnlinePlayerData {
-  return { ...p, moveCount: 0, solved: false, timeMs: 0, connected: true, moveLimitReached: false, leftRoom: false };
+  return {
+    ...p,
+    moveCount: 0,
+    solved: false,
+    timeMs: 0,
+    connected: true,
+    moveLimitReached: false,
+    leftRoom: false,
+    ready: false,
+  };
 }
 
 /**
@@ -229,6 +247,8 @@ export async function createRoom(playerName: string, playerId: string): Promise<
     hostId: playerId,
     status: 'waiting',
     createdAt: serverTimestamp(),
+    version: 2,
+    createdByName: playerName || 'Player 1',
     puzzleConfig: DEFAULT_MATCH_SETTINGS,
     settingsLocked: false,
     players: { host: blankPlayer(playerName || 'Player 1') },
@@ -266,6 +286,9 @@ export async function joinRoom(
   await updateDoc(roomRef(upper), {
     guestId: playerId,
     'players.guest': blankPlayer(playerName || 'Player 2'),
+    'players.guest.connected': true,
+    'players.guest.leftRoom': false,
+    'players.guest.ready': false,
     updatedAt: serverTimestamp(),
   });
 }
@@ -311,8 +334,33 @@ export async function updatePuzzleConfig(
   config: OnlineMatchSettings,
 ): Promise<void> {
   if (DEV) console.log('[Firestore write] updatePuzzleConfig');
+  await runTransaction(db, async tx => {
+    const snap = await tx.get(roomRef(roomCode));
+    if (!snap.exists()) return;
+    const room = snap.data() as OnlineRoom;
+    if (room.status !== 'waiting' || room.settingsLocked) return;
+
+    const patch: Record<string, unknown> = {
+      puzzleConfig: config,
+      'players.host.ready': false,
+      updatedAt: serverTimestamp(),
+    };
+    if (room.players.guest) patch['players.guest.ready'] = false;
+    tx.update(roomRef(roomCode), patch);
+  });
+}
+
+export async function setPlayerReady(
+  roomCode: string,
+  role: 'host' | 'guest',
+  ready: boolean,
+): Promise<void> {
+  if (DEV) console.log(`[Firestore write] setPlayerReady role=${role} ready=${ready}`);
   await updateDoc(roomRef(roomCode), {
-    puzzleConfig: config,
+    [`players.${role}.ready`]: ready,
+    [`players.${role}.connected`]: true,
+    [`players.${role}.leftRoom`]: false,
+    [`players.${role}.lastSeen`]: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
 }
@@ -324,7 +372,15 @@ export async function hostStartMatch(roomCode: string): Promise<void> {
   await runTransaction(db, async tx => {
     const snap = await tx.get(roomRef(roomCode));
     if (!snap.exists()) throw new Error('Room not found.');
-    if ((snap.data() as OnlineRoom).status !== 'waiting') return;
+    const room = snap.data() as OnlineRoom;
+    if (room.status !== 'waiting') return;
+    if (!room.players.guest || !room.guestId) throw new Error('Wait for an opponent to join first.');
+    if (!isPlayerOnline(room.players.host) || !isPlayerOnline(room.players.guest)) {
+      throw new Error('Both players must be online before starting.');
+    }
+    if (!room.players.host.ready || !room.players.guest.ready) {
+      throw new Error('Both players must press Ready before the match starts.');
+    }
     tx.update(roomRef(roomCode), {
       status: 'generating' as RoomStatus,
       settingsLocked: true,

@@ -6,11 +6,11 @@ import {
   checkWin,
   getLegalMoves,
   getMoveNotation,
-  undoMove,
   type GameState,
 } from '../gameLogic';
 import Board from './Board';
 import PixelButton from './PixelButton';
+import ScreenHeader from './ScreenHeader';
 import {
   subscribeToRoom,
   updateMoveCount,
@@ -21,6 +21,7 @@ import {
   forfeitAndLeave,
   startPresenceHeartbeat,
   isPlayerOnline,
+  claimVictoryAfterDisconnect,
 } from '../multiplayer/onlineRoomService';
 import { saveOnlineRaceProgress, loadOnlineRaceProgress, clearOnlineRaceProgress } from '../multiplayer/onlineRaceProgressStorage';
 
@@ -82,7 +83,6 @@ export default function OnlineRace({
   const [pieces, setPieces] = useState<Piece[]>(() => deepClone(puzzle.initialPieces));
   const [selected, setSelected] = useState<string | null>(null);
   const [history, setHistory] = useState<MoveRecord[]>([]);
-  const [historyStack, setHistoryStack] = useState<Piece[][]>([]);
   const [turn, setTurn] = useState<Color>('white');
 
   const [won, setWon] = useState(false);
@@ -148,15 +148,12 @@ export default function OnlineRace({
 
     let restored = deepClone(puzzle.initialPieces);
     const restoredHistory: MoveRecord[] = [];
-    const restoredStack: Piece[][] = [];
     for (const move of storedMoves) {
-      restoredStack.push(deepClone(restored));
       restored = restored.map(p => p.id === move.pieceId ? { ...p, cell: move.to } : p);
       restoredHistory.push(move);
     }
     setPieces(restored);
     setHistory(restoredHistory);
-    setHistoryStack(restoredStack);
     if (puzzle.mode === 'with-turns') {
       setTurn(storedMoves.length % 2 === 0 ? 'white' : 'black');
     }
@@ -257,7 +254,6 @@ export default function OnlineRace({
     }
 
     const { state: nextState, move } = result;
-    setHistoryStack(s => [...s, deepClone(pieces)]);
     setPieces(nextState.pieces);
     setHistory(nextState.moveHistory);
     setSelected(null);
@@ -301,35 +297,16 @@ export default function OnlineRace({
     }
   }, [pieces, selected, history, gameOver, withTurns, turn, puzzle, moveLimit, initialRoom.roomCode, initialRoom.puzzleSeed, myRole, playerId, playerName]);
 
-  const undo = () => {
-    if (history.length === 0 || gameOver) return;
-    const localGameState = buildOnlineGameState(
-      puzzle.id, pieces, selected, turn, history, gameOver,
-    );
-    const result = undoMove(localGameState, puzzle);
-    if (!result.ok) return;
-    setHistoryStack(s => s.slice(0, -1));
-    setPieces(result.state.pieces);
-    setHistory(result.state.moveHistory);
-    setSelected(null);
-    setTurn(result.state.currentTurn);
-  };
-
-  const restart = () => {
-    if (gameOver) return;
-    setPieces(deepClone(puzzle.initialPieces));
-    setSelected(null);
-    setHistory([]);
-    setHistoryStack([]);
-    setTurn('white');
-    setShakeId(null);
-  };
-
   const handleLeaveConfirm = async () => {
     setForfeiting(true);
     await forfeitAndLeave(initialRoom.roomCode, myRole).catch(() => {});
     // Navigation is driven by the room subscription: forfeit sets status → 'finished',
     // the onSnapshot callback fires onFinish(r), and both players go to the result screen.
+  };
+
+  const handleClaimDisconnect = async () => {
+    if (!opponentData || isPlayerOnline(opponentData)) return;
+    await claimVictoryAfterDisconnect(initialRoom.roomCode, playerId, playerName).catch(console.error);
   };
 
   const selectedPiece = pieces.find(p => p.id === selected) ?? null;
@@ -380,48 +357,31 @@ export default function OnlineRace({
         </div>
       )}
 
-      {/* Title row */}
-      <div className="game-title-row">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <div className="game-title" style={{ fontSize: 11 }}>
-            ⚡ Online Race
-            {rounds > 1 && (
-              <span style={{ fontSize: 8, color: 'var(--text-dim)', marginLeft: 10 }}>
-                Round {currentRound} of {rounds}
-              </span>
-            )}
-          </div>
-          <div style={{ fontSize: 6, color: 'var(--text-dim)', letterSpacing: 0.5 }}>
-            {puzzle.difficulty} · {room.puzzleConfig.boardSize} board
-            {room.puzzleConfig.timeLimitSeconds > 0
-              ? ` · ${room.puzzleConfig.timeLimitSeconds / 60}min limit` : ''}
-            {room.puzzleConfig.moveLimitMode !== 'none'
-              ? ` · ${room.puzzleConfig.moveLimitMode} moves` : ''}
-          </div>
-        </div>
-        {withTurns && !gameOver && (
-          <div className="turn-indicator">
-            Turn:{' '}
-            <span className={turn === 'white' ? 'turn-white' : 'turn-black'}>
-              {turn === 'white' ? '♘ White' : '♞ Black'}
-            </span>
-          </div>
-        )}
-        {timeRemaining !== null && (
-          <div style={{
-            fontSize: 13, fontWeight: 'bold',
-            color: timeCritical ? 'var(--red)' : 'var(--yellow)',
-            letterSpacing: 2, minWidth: 60, textAlign: 'right',
-          }}>
-            {formatTime(timeRemaining)}
-          </div>
-        )}
-      </div>
+      <ScreenHeader
+        title="Online Race"
+        subtitle={`${rounds > 1 ? `Round ${currentRound} of ${rounds} · ` : ''}${puzzle.difficulty} · ${room.puzzleConfig.boardSize} board${withTurns && !gameOver ? ` · Turn: ${turn === 'white' ? 'White' : 'Black'}` : ''}`}
+        right={
+          <>
+            <div className={`online-race-clock${timeCritical ? ' critical' : ''}`}>
+              {formatTime(timeRemaining ?? elapsed)}
+            </div>
+            <PixelButton
+              variant="danger"
+              className="screen-header-btn"
+              onClick={() => setShowLeaveConfirm(true)}
+              disabled={gameOver}
+            >
+              Leave
+            </PixelButton>
+          </>
+        }
+      />
 
       {/* Opponent disconnect banner */}
       {opponentDisconnected && (
         <div className="online-disconnect-banner">
-          ⚠ {opponentData.name} disconnected — continue solving or use Leave Race to forfeit
+          <span>⚠ {opponentData.name} disconnected — keep solving or claim if they do not return.</span>
+          <button type="button" onClick={handleClaimDisconnect}>Claim Win</button>
         </div>
       )}
 
@@ -575,11 +535,11 @@ export default function OnlineRace({
         </div>
 
         <div className="action-buttons">
-          <PixelButton variant="primary" className="control-btn control-primary" onClick={undo} disabled={historyStack.length === 0 || gameOver}>
-            ↶ Undo
+          <PixelButton variant="secondary" className="control-btn" onClick={() => setSelected(null)} disabled={!selected || gameOver}>
+            Clear Selection
           </PixelButton>
-          <PixelButton variant="secondary" className="control-btn" onClick={restart} disabled={gameOver || history.length === 0}>
-            ↻ Restart
+          <PixelButton variant="danger" className="control-btn" onClick={() => setShowLeaveConfirm(true)} disabled={gameOver}>
+            Leave Race
           </PixelButton>
         </div>
       </div>

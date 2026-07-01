@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { Puzzle } from '../types';
 import PixelButton from './PixelButton';
+import ScreenHeader from './ScreenHeader';
 import {
   subscribeToRoom,
   subscribeToRounds,
@@ -10,7 +11,9 @@ import {
   generationFailed,
   startGame,
   updatePuzzleConfig,
+  setPlayerReady,
   startPresenceHeartbeat,
+  markPlayerDisconnected,
   markPlayerLeftRoom,
   isPlayerOnline,
 } from '../multiplayer/onlineRoomService';
@@ -294,7 +297,7 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
   // Mark disconnected on browser close — NOT in general cleanup (StrictMode)
   useEffect(() => {
     const role = loadOnlineSession()?.role ?? 'guest';
-    const handler = () => { markPlayerLeftRoom(roomCode, role).catch(() => {}); };
+    const handler = () => { markPlayerDisconnected(roomCode, role).catch(() => {}); };
     window.addEventListener('beforeunload', handler);
     window.addEventListener('pagehide', handler);
     return () => {
@@ -338,6 +341,16 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
     }
   };
 
+  const handleToggleReady = async () => {
+    if (!room || room.status !== 'waiting') return;
+    setError('');
+    try {
+      await setPlayerReady(roomCode, myRole, !(localPlayerData?.ready ?? false));
+    } catch {
+      setError('Failed to update ready status. Please try again.');
+    }
+  };
+
   const handleStartMatch = async () => {
     setError('');
     if (settingsUpdating) {
@@ -360,7 +373,11 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
   const isCountdown = room?.status === 'countdown';
   const isGenerating = room?.status === 'generating';
   const settingsEditable = isHost && room?.status === 'waiting' && !room?.settingsLocked && !settingsUpdating;
-  const canStartMatch = isHost && !!opponentData && isPlayerOnline(opponentData) && !settingsUpdating && room?.status === 'waiting';
+  const hostReady = room?.players.host.ready ?? false;
+  const guestReady = room?.players.guest?.ready ?? false;
+  const bothReady = hostReady && guestReady;
+  const myReady = localPlayerData?.ready ?? false;
+  const canStartMatch = isHost && !!opponentData && isPlayerOnline(opponentData) && bothReady && !settingsUpdating && room?.status === 'waiting';
   const activePreset = MATCH_PRESETS.find(preset => sameSettings(localSettings, preset.settings));
   const boardLabel = BOARD_SIZE_CONFIG[localSettings.boardSize]?.label ?? localSettings.boardSize;
   const roundLabel = ROUNDS_OPTIONS.find(opt => opt.value === localSettings.rounds)?.label ?? `${localSettings.rounds} round`;
@@ -368,17 +385,24 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
   const difficultyLabel = localSettings.difficulty;
   const timeLabel = formatTimeLimit(localSettings.timeLimitSeconds);
   const moveLimitLabel = formatMoveLimit(localSettings.moveLimitMode);
+  const startBlockedReason = !opponentData
+    ? 'Waiting for opponent to join.'
+    : !isPlayerOnline(opponentData)
+      ? 'Opponent is offline.'
+      : !bothReady
+        ? 'Both players must press Ready.'
+        : settingsUpdating
+          ? 'Settings are still saving.'
+          : '';
 
   // ── Special states ───────────────────────────────────────────────────────────
 
   if (roomClosed) {
     return (
-      <div className="select-screen">
-        <div style={{ textAlign: 'center', padding: 40 }}>
+      <div className="select-screen online-room-shell">
+        <ScreenHeader title="Room Closed" subtitle="The host has closed this room." onBack={onLeave} backLabel="Menu" />
+        <div className="online-connecting">
           <div style={{ fontSize: 10, color: 'var(--red)', marginBottom: 12 }}>Room Closed</div>
-          <div style={{ fontSize: 8, color: 'var(--text-dim)', marginBottom: 24 }}>
-            The host has closed this room.
-          </div>
           <PixelButton variant="ghost" onClick={onLeave}>Back to Menu</PixelButton>
         </div>
       </div>
@@ -387,7 +411,8 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
 
   if (!room) {
     return (
-      <div className="select-screen">
+      <div className="select-screen online-room-shell">
+        <ScreenHeader title="Connecting" subtitle="Restoring your online room…" />
         <div className="online-connecting">
           <div className="gen-spinner" style={{ fontSize: 28, marginBottom: 16 }}>♞</div>
           <div style={{ fontSize: 9, color: 'var(--yellow)' }}>Connecting…</div>
@@ -398,8 +423,12 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
 
   if (isGenerating) {
     return (
-      <div className="select-screen">
-        <h1 className="select-title">Room Lobby</h1>
+      <div className="select-screen online-room-shell">
+        <ScreenHeader
+          title="Preparing Match"
+          subtitle={isHost ? 'Generating a verified shared puzzle…' : 'Waiting for the host device to generate the puzzle…'}
+          right={<PixelButton variant="danger" className="screen-header-btn" onClick={handleLeave}>Leave</PixelButton>}
+        />
         <div className="online-connecting">
           <div className="gen-spinner" style={{ fontSize: 36, marginBottom: 16 }}>♞</div>
           <div style={{ fontSize: 10, color: 'var(--yellow)', marginBottom: 8 }}>
@@ -412,9 +441,6 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
           </div>
         </div>
         {error && <div className="online-error" style={{ marginTop: 16 }}>{error}</div>}
-        <div style={{ position: 'fixed', bottom: 20, left: 20 }}>
-          <PixelButton variant="danger" className="btn-compact" onClick={handleLeave}>Leave</PixelButton>
-        </div>
       </div>
     );
   }
@@ -427,11 +453,17 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
   ];
 
   return (
-    <div className="select-screen">
-      <h1 className="select-title">Room Lobby</h1>
+    <div className="select-screen online-room-shell">
+      <ScreenHeader
+        title="Room Lobby"
+        subtitle={`Code ${roomCode} · You: ${playerName} · ${isHost ? 'Host controls the setup' : 'Waiting for host setup'}`}
+        right={<PixelButton variant="danger" className="screen-header-btn" onClick={handleLeave}>Leave</PixelButton>}
+      />
 
+      <div className="online-lobby-grid">
+        <div className="online-lobby-primary">
       {/* Room code */}
-      <div className="panel online-code-panel">
+      <div className="panel online-code-panel online-room-code-card">
         <div style={{ fontSize: 8, color: 'var(--text-dim)', marginBottom: 8 }}>Room Code</div>
         <div className="online-code-display">{roomCode}</div>
         <div style={{ marginTop: 12 }}>
@@ -447,7 +479,7 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
       {/* Players */}
       <div className="online-players-row">
         {playerSlots.map(({ label, data, role }, i) => (
-          <div key={label} className="panel online-player-card">
+          <div key={label} className={`panel online-player-card${data?.ready ? ' is-ready' : ''}`}>
             {data ? (
               <>
                 <div style={{ fontSize: 8, color: 'var(--text-dim)', marginBottom: 6 }}>{label}</div>
@@ -460,6 +492,9 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
                   color: isPlayerOnline(data) ? 'var(--green)' : 'var(--red)',
                 }}>
                   {isPlayerOnline(data) ? '● Online' : '○ Offline'}
+                </div>
+                <div className={`online-ready-badge${data.ready ? ' ready' : ''}`}>
+                  {data.ready ? '✓ Ready' : 'Waiting for ready'}
                 </div>
               </>
             ) : (
@@ -480,6 +515,7 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
           </div>
         ))}
       </div>
+        </div>
 
       {/* Score banner — visible after at least one round */}
       {room.score && room.score.totalRounds > 0 && (() => {
@@ -741,18 +777,25 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
           <div style={{ fontSize: 9, color: 'var(--text-dim)' }}>Get ready!</div>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginTop: 8 }}>
-          {isHost ? (
-            <>
-              {!opponentData || !isPlayerOnline(opponentData) ? (
-                <div style={{ fontSize: 8, color: 'var(--text-dim)', textAlign: 'center', marginBottom: 4 }}>
-                  Waiting for opponent to join…
-                </div>
-              ) : (
-                <div style={{ fontSize: 7, color: 'var(--text-dim)', marginBottom: 4 }}>
-                  {opponentData.name} has joined. Configure settings above, then start when ready.
-                </div>
-              )}
+        <div className="panel online-start-panel">
+          <div className="online-ready-checklist">
+            <div className={`online-ready-chip${hostReady ? ' ready' : ' waiting'}`}>
+              {hostReady ? '✓' : '•'} Host {hostReady ? 'ready' : 'not ready'}
+            </div>
+            <div className={`online-ready-chip${guestReady ? ' ready' : ' waiting'}`}>
+              {guestReady ? '✓' : '•'} Guest {guestReady ? 'ready' : 'not ready'}
+            </div>
+          </div>
+
+          <div className="online-actions-row">
+            <PixelButton
+              variant={myReady ? 'secondary' : 'success'}
+              onClick={handleToggleReady}
+              disabled={room.status !== 'waiting' || settingsUpdating || !localPlayerData}
+            >
+              {myReady ? 'Ready ✓' : 'I’m Ready'}
+            </PixelButton>
+            {isHost ? (
               <PixelButton
                 variant="primary"
                 onClick={handleStartMatch}
@@ -760,22 +803,26 @@ export default function OnlineLobby({ roomCode, playerId, playerName, onGameStar
               >
                 {settingsUpdating ? 'Updating…' : 'Start Match'}
               </PixelButton>
-            </>
-          ) : (
-            <div style={{ fontSize: 8, color: 'var(--text-dim)', textAlign: 'center' }}>
-              Waiting for host to start the match…
-            </div>
-          )}
+            ) : (
+              <PixelButton variant="secondary" disabled>
+                Waiting for Host
+              </PixelButton>
+            )}
+          </div>
+
+          <div className="online-ready-note">
+            {canStartMatch
+              ? 'Both players are ready. Start the match when you are set.'
+              : isHost
+                ? startBlockedReason
+                : myReady
+                  ? 'Ready locked. The host will start the match.'
+                  : 'Review the setup, then press Ready.'}
+          </div>
         </div>
       )}
 
       {error && <div className="online-error" style={{ marginTop: 16 }}>{error}</div>}
-
-      <div style={{ position: 'fixed', bottom: 20, left: 20 }}>
-        <PixelButton variant="danger" className="btn-compact" onClick={handleLeave}>Leave</PixelButton>
-      </div>
-      <div style={{ position: 'fixed', bottom: 20, right: 20 }}>
-        <div style={{ fontSize: 7, color: 'var(--text-dim)' }}>{playerName}</div>
       </div>
     </div>
   );

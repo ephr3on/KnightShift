@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import PixelButton from './PixelButton';
+import ScreenHeader from './ScreenHeader';
 import { ensureAnonymousAuth } from '../firebase';
 import { createRoom, joinRoom } from '../multiplayer/onlineRoomService';
 
@@ -45,9 +46,13 @@ export default function OnlineMenu({ onRoomReady, onBack }: Props) {
   }
 
   return (
-    <div className="select-screen">
-      <h1 className="select-title">Play Online</h1>
-      <p className="online-subtitle">Race a friend to solve the same puzzle first!</p>
+    <div className="select-screen online-menu-shell">
+      <ScreenHeader
+        title="Online Race"
+        subtitle="Create a private room or join with a code."
+        onBack={onBack}
+        backLabel="Menu"
+      />
 
       <div className="panel online-menu-name-card">
         <div className="panel-title">Your Name</div>
@@ -89,9 +94,6 @@ export default function OnlineMenu({ onRoomReady, onBack }: Props) {
 
       {error && <div className="online-error">{error}</div>}
 
-      <div className="select-bottom">
-        <PixelButton variant="ghost" onClick={onBack}>← Back</PixelButton>
-      </div>
     </div>
   );
 }

@@ -2658,3 +2658,261 @@ body::after {
     grid-template-columns: 1fr;
   }
 }
+
+/* --------------------------------------------------------------------------
+   Standard action structure: every screen gets one predictable top bar.
+   -------------------------------------------------------------------------- */
+.screen-header {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(76px, 0.7fr) minmax(0, 1.6fr) minmax(76px, 0.7fr);
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: clamp(0.8rem, 2.6vw, 1.2rem);
+  padding: calc(0.5rem + env(safe-area-inset-top, 0px)) clamp(0.45rem, 1.6vw, 0.85rem) 0.55rem;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 0 0 24px 24px;
+  background: linear-gradient(180deg, rgba(8, 12, 24, 0.94), rgba(8, 12, 24, 0.72));
+  box-shadow: 0 16px 36px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.06);
+  backdrop-filter: blur(18px);
+}
+
+.screen-header-action {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+.screen-header-action-left { justify-content: flex-start; }
+.screen-header-action-right { justify-content: flex-end; gap: 0.45rem; }
+.screen-header-copy { min-width: 0; text-align: center; }
+.screen-header-kicker {
+  color: var(--accent-2);
+  font-size: clamp(0.58rem, 1.7vw, 0.72rem);
+  font-weight: 950;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.screen-header h1 {
+  margin: 0;
+  color: var(--text);
+  font-size: clamp(1.05rem, 4.3vw, 1.72rem);
+  line-height: 1.05;
+  letter-spacing: -0.045em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.screen-header p {
+  margin: 0.16rem auto 0;
+  max-width: 44rem;
+  color: var(--text-dim);
+  font-size: clamp(0.66rem, 2.05vw, 0.84rem);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.screen-header-btn.pixel-btn {
+  min-height: 38px;
+  padding: 0.48rem 0.68rem;
+  border-radius: 999px;
+  font-size: clamp(0.66rem, 2.1vw, 0.78rem);
+  white-space: nowrap;
+}
+.screen-header .btn-danger {
+  border-radius: 999px;
+}
+
+.online-room-shell,
+.online-menu-shell,
+.online-result-shell {
+  padding-top: 0;
+}
+
+.online-lobby-grid {
+  width: min(100%, 980px);
+  margin: 0 auto;
+  display: grid;
+  gap: clamp(0.75rem, 2.4vw, 1rem);
+}
+
+.online-lobby-primary {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: clamp(0.75rem, 2.4vw, 1rem);
+  align-items: stretch;
+}
+
+.online-room-code-card {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  text-align: center;
+  gap: 0.55rem;
+}
+
+.online-player-card.is-ready {
+  border-color: rgba(52,211,153,0.36);
+  box-shadow: 0 18px 50px var(--shadow), 0 0 26px rgba(52,211,153,0.10), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.online-ready-row {
+  width: min(100%, 640px);
+  margin: 0 auto;
+  display: grid;
+  gap: 0.55rem;
+  justify-items: center;
+  text-align: center;
+}
+
+.online-ready-note {
+  color: var(--text-dim);
+  font-size: clamp(0.68rem, 2.2vw, 0.82rem);
+  line-height: 1.35;
+}
+
+.online-ready-checklist {
+  width: min(100%, 640px);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.online-ready-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.42rem;
+  min-height: 38px;
+  padding: 0.48rem 0.62rem;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 999px;
+  color: var(--text-dim);
+  background: rgba(255,255,255,0.045);
+  font-size: clamp(0.66rem, 2.1vw, 0.78rem);
+  font-weight: 850;
+}
+.online-ready-chip.ready {
+  color: #d1fae5;
+  border-color: rgba(52,211,153,0.34);
+  background: rgba(52,211,153,0.10);
+}
+.online-ready-chip.waiting {
+  color: #fde68a;
+  border-color: rgba(251,191,36,0.24);
+  background: rgba(251,191,36,0.08);
+}
+
+.online-start-panel {
+  width: min(100%, 640px);
+  margin: 0 auto;
+  padding: 0.9rem;
+  display: grid;
+  gap: 0.65rem;
+  justify-items: center;
+  text-align: center;
+}
+.online-start-panel .pixel-btn {
+  width: min(100%, 360px);
+}
+
+.online-race-screen {
+  grid-template-areas:
+    "title title"
+    "notice notice"
+    "goal goal"
+    "board board"
+    "history controls";
+}
+.online-race-screen .screen-header {
+  grid-area: title;
+  margin-bottom: 0;
+}
+.online-race-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text-dim);
+}
+.online-race-clock {
+  min-width: 72px;
+  text-align: center;
+  padding: 0.46rem 0.62rem;
+  border: 1px solid rgba(251,191,36,0.25);
+  border-radius: 999px;
+  color: var(--gold);
+  background: rgba(251,191,36,0.08);
+  font-weight: 950;
+  letter-spacing: 0.08em;
+}
+.online-race-clock.critical {
+  color: #fecdd3;
+  border-color: rgba(251,113,133,0.35);
+  background: rgba(251,113,133,0.10);
+}
+
+.online-actions-row {
+  width: min(100%, 640px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+@media (max-width: 720px) {
+  .screen-header {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0.45rem;
+    margin-left: calc(-1 * clamp(14px, 4vw, 34px));
+    margin-right: calc(-1 * clamp(14px, 4vw, 34px));
+    width: calc(100% + (2 * clamp(14px, 4vw, 34px)));
+    border-radius: 0 0 20px 20px;
+  }
+  .screen-header p { display: none; }
+  .screen-header-kicker { display: none; }
+  .screen-header h1 { font-size: clamp(0.98rem, 4.7vw, 1.32rem); }
+  .screen-header-btn.pixel-btn { min-height: 36px; padding-inline: 0.56rem; }
+  .online-lobby-primary { grid-template-columns: 1fr; }
+  .online-ready-checklist { grid-template-columns: 1fr; }
+  .online-actions-row { grid-template-columns: 1fr; }
+}
+.online-disconnect-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.online-disconnect-banner button {
+  min-height: 30px;
+  border: 1px solid rgba(251,191,36,0.28);
+  border-radius: 999px;
+  padding: 0.35rem 0.58rem;
+  color: #fef3c7;
+  background: rgba(251,191,36,0.10);
+  font-size: 0.68rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+.online-disconnect-banner button:hover {
+  border-color: rgba(251,191,36,0.46);
+  background: rgba(251,191,36,0.16);
+}
+.game-screen > .screen-header {
+  grid-area: title;
+  margin-bottom: 0;
+  width: 100%;
+}
+.game-screen > .screen-header .screen-header-copy {
+  text-align: center;
+}
+@media (max-width: 720px) {
+  .game-screen > .screen-header {
+    margin-left: 0;
+    margin-right: 0;
+    width: 100%;
+  }
+}

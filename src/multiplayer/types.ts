@@ -84,6 +84,8 @@ export interface OnlinePlayerData {
   lastSeen?: unknown;
   /** True when player clicked a Leave button intentionally (not a browser close). */
   leftRoom?: boolean;
+  /** Lobby confirmation. Both players must be ready before the host can start. */
+  ready?: boolean;
 }
 
 export interface OnlinePlayers {
@@ -154,6 +156,10 @@ export interface OnlineRoom {
   status: RoomStatus;
   createdAt: unknown;
   updatedAt?: unknown;
+
+  // Professional room metadata
+  version?: number;
+  createdByName?: string;
 
   // Puzzle configuration — host edits these before starting
   puzzleConfig: OnlineMatchSettings;
